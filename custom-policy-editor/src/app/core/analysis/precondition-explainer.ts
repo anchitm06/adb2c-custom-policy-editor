@@ -135,7 +135,7 @@ export function explainPreconditions(preconditions: readonly Precondition[], opt
         lints.push({ severity: 'warning', message: `${a.claim} is always present when this step is reached, so the step is always skipped.`, index: it.index });
       }
       if (a.op === 'neq' && status !== 'definitely') {
-        const guarded = valid.some((b, j) => atoms.indexOf(b) < it.index && b.op === 'missing' && idKey(b.claim) === idKey(a.claim));
+        const guarded = valid.some((b) => atoms.indexOf(b) < it.index && b.op === 'missing' && idKey(b.claim) === idKey(a.claim));
         if (!guarded) {
           lints.push({
             severity: 'warning',

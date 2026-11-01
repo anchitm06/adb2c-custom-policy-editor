@@ -602,3 +602,23 @@ export function replaceTenantText(text: string, tenant: string, iefAppId?: strin
   if (iefAppId) t = t.replace(/(?<!Proxy)\bIdentityExperienceFrameworkAppId\b/g, iefAppId);
   return t;
 }
+
+export function setPredicateValidationReference(doc: XDocument, claimRef: SourceRef, id: string | null): void {
+  const ct = at(doc, claimRef);
+  const existing = child(ct, 'PredicateValidationReference');
+  if (!id) {
+    if (existing) removeElement(existing);
+    return;
+  }
+  if (existing) setAttr(existing, 'Id', id);
+  else insertOrdered(ct, h('PredicateValidationReference', { Id: id }), ORDER.ClaimType);
+}
+
+export function setElementText(doc: XDocument, ref: SourceRef, value: string): void {
+  const el = at(doc, ref);
+  if (textOf(el) !== value) setText(el, value);
+}
+
+export function setFieldText(doc: XDocument, ref: SourceRef, name: string, value: string | null, order: readonly string[]): void {
+  setChildText(at(doc, ref), name, value, order);
+}

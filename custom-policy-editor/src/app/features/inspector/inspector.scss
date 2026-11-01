@@ -1,0 +1,116 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  .title {
+    font-weight: 600;
+    font-size: 14px;
+  }
+}
+.order {
+  min-width: 26px;
+  height: 26px;
+  border-radius: 13px;
+  background: var(--text);
+  color: var(--surface);
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.tabs {
+  display: flex;
+  gap: 2px;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--border);
+  button {
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: 12.5px;
+    color: var(--text-2);
+    padding: 8px 8px 7px;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    display: inline-flex;
+    gap: 5px;
+    align-items: center;
+    &.on {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      font-weight: 600;
+    }
+  }
+  .count {
+    background: var(--skip-bg);
+    color: var(--skip);
+    border-radius: 8px;
+    font-size: 10.5px;
+    padding: 0 5px;
+  }
+}
+.body {
+  flex: 1;
+  overflow: auto;
+  padding: 12px 14px 24px;
+  app-claims-bag {
+    height: auto;
+    margin: -12px -14px;
+  }
+}
+h4 {
+  margin: 14px 0 6px;
+}
+.sel {
+  margin-bottom: 6px;
+}
+.xcard {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+  margin-bottom: 8px;
+  background: var(--surface-2);
+}
+.claims {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  align-items: center;
+  margin-top: 4px;
+  .lbl {
+    font-size: 10.5px;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--text-3);
+    margin-right: 3px;
+    min-width: 62px;
+  }
+  .chip {
+    height: 18px;
+    font-size: 11px;
+  }
+}
+.stat {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+  > div {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px;
+    strong {
+      display: block;
+      font-size: 18px;
+    }
+  }
+}

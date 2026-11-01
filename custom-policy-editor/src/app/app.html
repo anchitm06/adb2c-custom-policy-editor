@@ -1,0 +1,192 @@
+@if (!store.loaded()) {
+  <div class="loading muted">Loading…</div>
+} @else if (!store.files().length) {
+  <app-welcome />
+} @else {
+  <header class="topbar">
+    <div class="brand"><app-icon name="journey" [size]="18" /> <span>B2C policy editor</span></div>
+    <div class="sep"></div>
+    <label class="small muted" for="tb-policy">Policy</label>
+    <select id="tb-policy" class="policy" [appValue]="store.activeChain()?.leaf?.fileId ?? ''" (change)="store.activeLeafId.set($any($event.target).value); store.selectedPath.set(null)">
+      @for (c of store.chains(); track c.leaf.fileId) {
+        <option [value]="c.leaf.fileId">{{ c.leaf.policyId ?? c.leaf.fileName }}{{ c.leaf.relyingParty ? '' : ' (no relying party)' }}</option>
+      }
+    </select>
+    <nav class="chain" aria-label="Inheritance chain">
+      @for (d of store.activeChain()?.docs ?? []; track d.fileId; let last = $last) {
+        <button class="crumb" [class.target]="d.fileId === store.targetFile()?.fileId" [title]="d.fileName + (d.fileId === store.targetFile()?.fileId ? ' — new elements and overrides are written here' : '')" (click)="store.xmlFileId.set(d.fileId); store.mainMode.set('xml')">
+          {{ store.layerOf(d.fileId) }}
+        </button>
+        @if (!last) {
+          <app-icon name="chevronRight" [size]="12" />
+        }
+      }
+    </nav>
+    <span class="spacer"></span>
+    <button class="btn ghost icon" [disabled]="!store.canUndo()" [title]="'Undo ' + store.undoLabel() + ' (Ctrl+Z)'" (click)="store.undo()"><app-icon name="undo" /></button>
+    <button class="btn ghost icon" [disabled]="!store.canRedo()" [title]="'Redo ' + store.redoLabel() + ' (Ctrl+Shift+Z)'" (click)="store.redo()"><app-icon name="redo" /></button>
+    <div class="sep"></div>
+    <button class="btn ghost counts" title="Problems" (click)="openProblems()">
+      <span class="c error"><app-icon name="error" [size]="14" /> {{ store.counts().error }}</span>
+      <span class="c warning"><app-icon name="warning" [size]="14" /> {{ store.counts().warning }}</span>
+    </button>
+    <div class="seg" role="tablist" aria-label="Editor mode">
+      <button role="tab" [attr.aria-selected]="store.mainMode() === 'visual'" [class.on]="store.mainMode() === 'visual'" (click)="store.mainMode.set('visual')"><app-icon name="eye" [size]="14" /> Visual</button>
+      <button role="tab" [attr.aria-selected]="store.mainMode() === 'xml'" [class.on]="store.mainMode() === 'xml'" (click)="store.mainMode.set('xml')"><app-icon name="xml" [size]="14" /> XML</button>
+    </div>
+    <button class="btn" (click)="exportAll()"><app-icon name="download" [size]="14" /> Export</button>
+    <button class="btn ghost icon" title="Toggle dark mode" (click)="toggleTheme()"><app-icon name="moon" /></button>
+    <button class="btn ghost icon" title="Close workspace" (click)="store.closeWorkspace()"><app-icon name="close" /></button>
+  </header>
+
+  <div class="body">
+    <nav class="activity" aria-label="Views">
+      @for (a of activities; track a.view) {
+        <button [class.on]="store.view() === a.view" [title]="a.label" [attr.aria-label]="a.label" (click)="setView(a.view)">
+          <app-icon [name]="a.icon" [size]="19" />
+          @if (countFor(a.view); as n) {
+            <span class="badge">{{ n }}</span>
+          }
+        </button>
+      }
+    </nav>
+    <aside class="explorer"><app-explorer /></aside>
+
+    <main class="main">
+      <div class="center">
+        <div class="primary">
+          @if (store.mainMode() === 'xml') {
+            <app-xml-view />
+          } @else {
+            @switch (store.view()) {
+              @case ('journeys') {
+                <app-journey-canvas />
+              }
+              @case ('technicalProfiles') {
+                @if (selected('technicalProfile'); as id) {
+                  <app-technical-profile-editor [tpId]="id" />
+                } @else {
+                  <div class="empty">Pick a technical profile from the list.</div>
+                }
+              }
+              @case ('claims') {
+                @if (selected('claim'); as id) {
+                  <app-claim-editor [claimId]="id" />
+                } @else {
+                  <div class="empty">Pick a claim from the list.</div>
+                }
+              }
+              @case ('transformations') {
+                @if (selected('transformation'); as id) {
+                  <app-transformation-editor [ctId]="id" />
+                } @else {
+                  <div class="empty">Pick a claims transformation from the list.</div>
+                }
+              }
+              @case ('contentDefinitions') {
+                @if (selected('contentDefinition'); as id) {
+                  <app-content-definition-editor [cdId]="id" />
+                } @else {
+                  <div class="empty">Pick a content definition from the list.</div>
+                }
+              }
+              @case ('localization') {
+                @if (selected('localization'); as id) {
+                  <app-localization-editor [resId]="id" />
+                } @else {
+                  <div class="empty">Pick localized resources from the list.</div>
+                }
+              }
+              @case ('displayControls') {
+                @if (selected('displayControl'); as id) {
+                  <app-display-control-editor [dcId]="id" />
+                } @else {
+                  <div class="empty">Pick a display control from the list.</div>
+                }
+              }
+              @case ('predicates') {
+                @if (selected('predicate'); as id) {
+                  <app-predicate-editor [predId]="id" />
+                } @else {
+                  <div class="empty">Pick a predicate from the list.</div>
+                }
+              }
+              @case ('relyingParty') {
+                <app-relying-party-editor />
+              }
+              @case ('files') {
+                <app-files-view />
+              }
+            }
+          }
+        </div>
+        @if (showInspector()) {
+          <aside class="inspector">
+            @if (sel(); as s) {
+              @if (s.kind === 'step') {
+                <app-step-inspector [stepKey]="s.stepKey" [journeyId]="s.journeyId" />
+              } @else {
+                <app-journey-inspector [journeyId]="inspectorJourney()!" />
+              }
+            } @else {
+              <app-journey-inspector [journeyId]="inspectorJourney()!" />
+            }
+          </aside>
+        }
+      </div>
+
+      <section class="dock" [class.closed]="!store.bottomOpen()">
+        <div class="dock-tabs" role="tablist">
+          <button role="tab" [attr.aria-selected]="store.bottomTab() === 'claims'" [class.on]="store.bottomTab() === 'claims'" (click)="store.bottomTab.set('claims'); store.bottomOpen.set(true)"><app-icon name="bag" [size]="14" /> Claims bag</button>
+          <button role="tab" [attr.aria-selected]="store.bottomTab() === 'timeline'" [class.on]="store.bottomTab() === 'timeline'" (click)="store.bottomTab.set('timeline'); store.bottomOpen.set(true)"><app-icon name="table" [size]="14" /> Claims timeline</button>
+          <button role="tab" [attr.aria-selected]="store.bottomTab() === 'problems'" [class.on]="store.bottomTab() === 'problems'" (click)="store.bottomTab.set('problems'); store.bottomOpen.set(true)">
+            <app-icon name="warning" [size]="14" /> Problems
+            @if (store.counts().error) {
+              <span class="chip error">{{ store.counts().error }}</span>
+            }
+            @if (store.counts().warning) {
+              <span class="chip warning">{{ store.counts().warning }}</span>
+            }
+          </button>
+          <span class="spacer"></span>
+          <button class="btn ghost sm icon" [title]="store.bottomOpen() ? 'Collapse' : 'Expand'" (click)="store.bottomOpen.set(!store.bottomOpen())"><app-icon [name]="store.bottomOpen() ? 'chevronDown' : 'chevronUp'" [size]="14" /></button>
+        </div>
+        @if (store.bottomOpen()) {
+          <div class="dock-body">
+            @switch (store.bottomTab()) {
+              @case ('problems') {
+                <app-problems-panel />
+              }
+              @case ('claims') {
+                <app-claims-bag />
+              }
+              @case ('timeline') {
+                <app-claims-timeline />
+              }
+            }
+          </div>
+        }
+      </section>
+    </main>
+  </div>
+}
+
+<div class="toasts" aria-live="polite">
+  @for (t of store.toasts(); track t.id) {
+    <div class="toast card {{ t.kind }}">
+      <div class="row">
+        <app-icon [name]="t.kind === 'error' ? 'error' : t.impact?.newDiagnostics?.length ? 'warning' : 'check'" [size]="15" />
+        <strong class="grow truncate">{{ t.title }}</strong>
+        <button class="btn ghost sm icon" title="Dismiss" (click)="store.dismissToast(t.id)"><app-icon name="close" [size]="13" /></button>
+      </div>
+      <ul>
+        @for (l of t.lines; track $index) {
+          <li>{{ l }}</li>
+        }
+      </ul>
+      @if (t.impact?.newDiagnostics?.length) {
+        <button class="btn sm" (click)="openProblems(); store.dismissToast(t.id)">Show problems</button>
+      }
+    </div>
+  }
+</div>
