@@ -52,3 +52,18 @@ describe('precondition semantics (Microsoft Learn examples)', () => {
     expect(runCondition([]).constraints).toEqual([]);
   });
 });
+
+describe('explainer with analysis context', () => {
+  it('drops "is missing" for claims that are always present at the step', async () => {
+    const { loadSamplePack } = await import('../../../testing/samples');
+    const { parseFile } = await import('../workspace/workspace');
+    const { buildChains, resolveChain } = await import('../resolve/resolve');
+    const { analyzeJourney, stepKey } = await import('./journey-analyzer');
+    const docs = loadSamplePack('SocialAndLocalAccounts').map(parseFile).map((f) => f.doc!);
+    const eff = resolveChain(buildChains(docs).find((c) => c.leaf.fileName === 'SignUpOrSignin.xml')!);
+    const a = analyzeJourney(eff, 'SignUpOrSignIn');
+    const step5 = eff.userJourneys.get('signuporsignin')!.value.steps[4];
+    const e = explainPreconditions(step5.preconditions, { eff, analysis: a, stepKey: stepKey('SignUpOrSignIn', 5) });
+    expect(e.runsOnlyWhen).toEqual(['authenticationSource ≠ "socialIdpAuthentication"']);
+  });
+});

@@ -5,6 +5,7 @@ import {
   Atom,
   describeAtom,
   describeConstraint,
+  isImpossible,
   parsePrecondition,
   runCondition,
   RunWhen,
@@ -76,7 +77,13 @@ export function explainPreconditions(preconditions: readonly Precondition[], opt
   });
 
   const rc = runCondition(valid);
-  const runsOnlyWhen = rc.never ? [] : rc.constraints.map(describeConstraint);
+  // Use what the analysis knows: a claim that is always present here can't be "missing".
+  if (summary) {
+    rc.constraints = rc.constraints.map((c) => (summary.before.get(idKey(c.claim))?.availability === 'definitely' && c.allowsMissing ? { ...c, allowsMissing: false } : c)).filter((c) => !(c.allowsMissing === false && c.present.kind === 'any' && summary.before.get(idKey(c.claim))?.availability === 'definitely'));
+    rc.never = rc.never || rc.constraints.some(isImpossible);
+  }
+  const alwaysPresent = (claim: string) => summary?.before.get(idKey(claim))?.availability === 'definitely';
+  const runsOnlyWhen = rc.never ? [] : rc.constraints.map((c) => (alwaysPresent(c.claim) ? describeConstraint(c).replace(`${c.claim} exists and `, `${c.claim} `) : describeConstraint(c)));
   const always = valid.length === 0 || (!rc.never && rc.constraints.length === 0);
   const never = rc.never;
 

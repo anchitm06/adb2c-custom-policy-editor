@@ -356,7 +356,7 @@ export class JourneyCanvas {
         const sub = eff.subJourneys.get(idKey(id))?.value;
         candidate = { id, type: sub?.subJourneyType, steps: sub && depth < 2 ? this.buildSteps(sub, depth + 1) : [] };
       }
-      const ex = st.preconditions.length ? explainPreconditions(st.preconditions, { eff }) : null;
+      const ex = st.preconditions.length ? explainPreconditions(st.preconditions, { eff, analysis: a ?? undefined, stepKey: key }) : null;
       const d = diags.get(key) ?? [];
       const runs = summary?.runs ?? 'unreached';
       const total = (summary?.runPaths.length ?? 0) + (summary?.skipPaths.length ?? 0);
