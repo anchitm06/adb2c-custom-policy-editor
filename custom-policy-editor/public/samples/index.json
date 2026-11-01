@@ -1,0 +1,9 @@
+{
+  "attribution": "Samples from Azure-Samples/active-directory-b2c-custom-policy-starterpack (MIT License, Copyright (c) Microsoft Corporation). See LICENSE.txt.",
+  "packs": [
+    { "id": "SocialAndLocalAccounts", "name": "Social and local accounts", "description": "Local accounts plus Facebook. Most Microsoft samples build on this pack.", "files": ["TrustFrameworkBase.xml", "TrustFrameworkLocalization.xml", "TrustFrameworkExtensions.xml", "SignUpOrSignin.xml", "ProfileEdit.xml", "PasswordReset.xml"] },
+    { "id": "SocialAndLocalAccountsWithMfa", "name": "Social and local accounts with MFA", "description": "Adds phone-based multifactor authentication.", "files": ["TrustFrameworkBase.xml", "TrustFrameworkLocalization.xml", "TrustFrameworkExtensions.xml", "SignUpOrSignin.xml", "ProfileEdit.xml", "PasswordReset.xml"] },
+    { "id": "LocalAccounts", "name": "Local accounts only", "description": "Email and password accounts stored in the directory.", "files": ["TrustFrameworkBase.xml", "TrustFrameworkLocalization.xml", "TrustFrameworkExtensions.xml", "SignUpOrSignin.xml", "ProfileEdit.xml", "PasswordReset.xml"] },
+    { "id": "SocialAccounts", "name": "Social accounts only", "description": "Federation with Facebook only.", "files": ["TrustFrameworkBase.xml", "TrustFrameworkLocalization.xml", "TrustFrameworkExtensions.xml", "SignUpOrSignin.xml", "ProfileEdit.xml"] }
+  ]
+}
