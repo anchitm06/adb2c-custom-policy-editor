@@ -114,6 +114,8 @@ Learn link used by the site stops working.
 - Journeys with very many independent branches may be analysed in an approximate mode, which
   reads "maybe" in places where the answer is certain. Choose a scenario for exact results.
 - Orchestration steps redefined in a derived file are merged by `Order`.
+- The editor needs a screen at least 768 pixels wide. On phones it shows a static message (plain
+  HTML in `index.html`) with a link to open the site on a larger screen.
 - There is no direct upload to a B2C tenant. Export the files and upload them with the Azure
   portal, the Azure AD B2C VS Code extension or Microsoft Graph.
 - Azure AD B2C is no longer available to purchase for new customers (since 1 May 2025). Existing
