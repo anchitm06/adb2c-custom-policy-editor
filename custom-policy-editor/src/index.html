@@ -2,11 +2,38 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>B2C Policy Editor</title>
-  <meta name="description" content="Visual editor for Azure AD B2C custom policies: user journeys, preconditions, claims flow and validation.">
+    <title>B2C policy editor: visual editor for Azure AD B2C custom policies</title>
+    <meta name="description" content="See when each step of an Azure AD B2C custom policy runs and which claims are in the user session. Preconditions in plain words, checked as you edit. Runs in your browser; nothing is uploaded." />
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+
+    <meta name="theme-color" content="#0462d3" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="favicon.ico" sizes="48x48" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <link rel="manifest" href="site.webmanifest" />
+
+    <!--
+      Link previews (LinkedIn, X, Slack and others). Crawlers read this page without running
+      scripts, and every link to the site loads this same page, so one set of tags covers all links.
+      The URLs must be absolute. If the site moves to another address, change them here.
+    -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="B2C policy editor" />
+    <meta property="og:title" content="B2C policy editor: see when each step runs" />
+    <meta property="og:description" content="A visual editor for Azure AD B2C custom policies. Preconditions in plain words, the claims in the user session at every step, and every change checked as you edit." />
+    <meta property="og:url" content="https://anchitm06.github.io/adb2c-custom-policy-editor/" />
+    <meta property="og:image" content="https://anchitm06.github.io/adb2c-custom-policy-editor/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="B2C policy editor: a user journey shown as three step cards, with labels for when each step runs." />
+    <meta property="og:locale" content="en_US" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="B2C policy editor: see when each step runs" />
+    <meta name="twitter:description" content="A visual editor for Azure AD B2C custom policies. Preconditions in plain words and the claims in the user session at every step." />
+    <meta name="twitter:image" content="https://anchitm06.github.io/adb2c-custom-policy-editor/og-image.png" />
+    <meta name="twitter:image:alt" content="B2C policy editor: a user journey shown as three step cards, with labels for when each step runs." />
   </head>
   <body>
     <app-root></app-root>

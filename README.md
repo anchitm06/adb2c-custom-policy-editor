@@ -72,6 +72,7 @@ npm run lint
 npm run build
 npm run check:links     # checks every Microsoft Learn link and anchor used by alerts and Help
 node scripts/check-contrast.mjs   # checks the colour tokens in light and dark mode
+NODE_PATH=$(npm root -g) node scripts/generate-brand-assets.mjs   # rebuilds the favicon set and link preview image in public/
 ```
 
 Code layout:
@@ -87,6 +88,9 @@ Code layout:
 - `src/app/state`: the signal-based editor store (files, parse, resolve, analyse, validate, undo and redo, autosave) and deep links
 - `src/app/features`: UI (canvas, details panel, editors, Help, shell)
 - `src/styles/tokens.scss`: the design tokens (Hallmark Cobalt theme, light and dark)
+
+The link preview (Open Graph and Twitter card tags) lives in `src/index.html` with absolute URLs for
+the GitHub Pages address. If the site moves, update them there.
 
 Fonts (IBM Plex Sans, Familjen Grotesk, JetBrains Mono) are bundled with the app through
 Fontsource, so the site makes no third-party requests.
