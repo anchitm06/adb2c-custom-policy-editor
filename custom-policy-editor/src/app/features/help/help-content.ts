@@ -220,6 +220,7 @@ export const HELP_SECTIONS: HelpSection[] = [
           'Very large journeys with many independent branches may be analysed in an approximate mode. The status bar says when. Choose a scenario for exact results.',
           'Only the parts of the policy language that the site understands are checked. Unusual or new features can be edited in XML but may not be validated.',
           'Not every technical profile type has a form. Use the XML view for the rest.',
+          'It is made for laptops, desktops and tablets. On a phone-sized screen (under 768 pixels wide) the site shows a short message instead, with a link to open it on a larger screen.',
         ],
       },
     ],

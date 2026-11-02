@@ -9,7 +9,7 @@
     "test": "ng test --watch=false",
     "lint": "ng lint",
     "test:watch": "ng test",
-    "build:pages": "ng build --base-href /adb2c-custom-policy-editor/",
+    "build:pages": "ng build --base-href /",
     "check:links": "node --experimental-strip-types scripts/check-doc-links.mjs"
   },
   "private": true,

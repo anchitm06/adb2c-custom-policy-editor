@@ -72,6 +72,7 @@ npm run lint
 npm run build
 npm run check:links     # checks every Microsoft Learn link and anchor used by alerts and Help
 node scripts/check-contrast.mjs   # checks the colour tokens in light and dark mode
+NODE_PATH=$(npm root -g) node scripts/generate-brand-assets.mjs   # rebuilds the favicon set and link preview image in public/
 ```
 
 Code layout:
@@ -88,13 +89,18 @@ Code layout:
 - `src/app/features`: UI (canvas, details panel, editors, Help, shell)
 - `src/styles/tokens.scss`: the design tokens (Hallmark Cobalt theme, light and dark)
 
+The link preview (Open Graph and Twitter card tags) lives in `src/index.html` with absolute URLs for
+the custom domain. If the site moves, update them there.
+
 Fonts (IBM Plex Sans, Familjen Grotesk, JetBrains Mono) are bundled with the app through
 Fontsource, so the site makes no third-party requests.
 
 ## Deployment (GitHub Pages)
 
-`.github/workflows/deploy.yml` lints, tests, builds with `--base-href /<repo>/` and publishes to
-GitHub Pages on every push to `main`. In the repository settings, set **Pages, Build and
+`.github/workflows/deploy.yml` lints, tests, builds with `--base-href /` and publishes to
+GitHub Pages on every push to `main`. The site is served from the custom domain
+`https://adb2cpolicyeditor.anchitmathur.in/`: a CNAME record for `adb2cpolicyeditor` points to
+`anchitm06.github.io`, and the domain is set under **Pages, Custom domain** with **Enforce HTTPS** on. In the repository settings, set **Pages, Build and
 deployment, Source** to **GitHub Actions** once. `.github/workflows/ci.yml` runs the same checks
 for pull requests. `.github/workflows/links.yml` runs weekly and opens an issue when a Microsoft
 Learn link used by the site stops working.
@@ -110,6 +116,8 @@ Learn link used by the site stops working.
 - Journeys with very many independent branches may be analysed in an approximate mode, which
   reads "maybe" in places where the answer is certain. Choose a scenario for exact results.
 - Orchestration steps redefined in a derived file are merged by `Order`.
+- The editor needs a screen at least 768 pixels wide. On phones it shows a static message (plain
+  HTML in `index.html`) with a link to open the site on a larger screen.
 - There is no direct upload to a B2C tenant. Export the files and upload them with the Azure
   portal, the Azure AD B2C VS Code extension or Microsoft Graph.
 - Azure AD B2C is no longer available to purchase for new customers (since 1 May 2025). Existing

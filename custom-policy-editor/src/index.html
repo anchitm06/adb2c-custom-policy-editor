@@ -2,13 +2,134 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>B2C Policy Editor</title>
-  <meta name="description" content="Visual editor for Azure AD B2C custom policies: user journeys, preconditions, claims flow and validation.">
+    <title>B2C policy editor: visual editor for Azure AD B2C custom policies</title>
+    <meta name="description" content="See when each step of an Azure AD B2C custom policy runs and which claims are in the user session. Preconditions in plain words, checked as you edit. Runs in your browser; nothing is uploaded." />
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+
+    <meta name="theme-color" content="#0462d3" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="favicon.ico" sizes="48x48" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <link rel="manifest" href="site.webmanifest" />
+    <link rel="canonical" href="https://adb2cpolicyeditor.anchitmathur.in/" />
+
+    <!--
+      Link previews (LinkedIn, X, Slack and others). Crawlers read this page without running
+      scripts, and every link to the site loads this same page, so one set of tags covers all links.
+      The URLs must be absolute. If the site moves to another address, change them here.
+    -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="B2C policy editor" />
+    <meta property="og:title" content="B2C policy editor: see when each step runs" />
+    <meta property="og:description" content="A visual editor for Azure AD B2C custom policies. Preconditions in plain words, the claims in the user session at every step, and every change checked as you edit." />
+    <meta property="og:url" content="https://adb2cpolicyeditor.anchitmathur.in/" />
+    <meta property="og:image" content="https://adb2cpolicyeditor.anchitmathur.in/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="B2C policy editor: a user journey shown as three step cards, with labels for when each step runs." />
+    <meta property="og:locale" content="en_US" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="B2C policy editor: see when each step runs" />
+    <meta name="twitter:description" content="A visual editor for Azure AD B2C custom policies. Preconditions in plain words and the claims in the user session at every step." />
+    <meta name="twitter:image" content="https://adb2cpolicyeditor.anchitmathur.in/og-image.png" />
+    <meta name="twitter:image:alt" content="B2C policy editor: a user journey shown as three step cards, with labels for when each step runs." />
+
+    <!--
+      Phones: the editor needs room for a journey, its details and the XML, so below 768px wide a
+      short static message replaces it. This is plain HTML and CSS, so it shows before any script
+      has loaded. "Open the editor anyway" remembers the choice for the tab.
+    -->
+    <style>
+      #small-screen { display: none; }
+      @media (max-width: 767px) {
+        html:not(.allow-small) app-root { display: none; }
+        html:not(.allow-small) #small-screen { display: flex; }
+      }
+      #small-screen {
+        --ink: oklch(21% 0.028 262);
+        --ink-2: oklch(36% 0.022 260);
+        --paper: oklch(98.6% 0.005 250);
+        --rule: oklch(83% 0.012 252);
+        --accent: oklch(52% 0.19 258);
+        --accent-ink: oklch(98.6% 0.005 250);
+        min-height: 100dvh;
+        box-sizing: border-box;
+        flex-direction: column;
+        justify-content: center;
+        gap: 16px;
+        padding: 32px 24px;
+        background: var(--paper);
+        color: var(--ink);
+        font: 400 16px/1.55 'IBM Plex Sans', system-ui, sans-serif;
+      }
+      @media (prefers-color-scheme: dark) {
+        #small-screen {
+          --ink: oklch(94% 0.008 255);
+          --ink-2: oklch(82% 0.012 256);
+          --paper: oklch(16% 0.012 258);
+          --rule: oklch(38% 0.016 258);
+          --accent: oklch(62% 0.16 258);
+          --accent-ink: oklch(14% 0.02 262);
+        }
+      }
+      #small-screen * { box-sizing: border-box; margin: 0; }
+      #small-screen svg { width: 48px; height: 48px; border-radius: 8px; }
+      #small-screen h1 { font: 600 28px/1.15 'Familjen Grotesk', system-ui, sans-serif; letter-spacing: -0.02em; text-wrap: balance; }
+      #small-screen p { color: var(--ink-2); max-width: 36ch; text-wrap: pretty; }
+      #small-screen .url { font: 400 14px/1.4 ui-monospace, 'JetBrains Mono', monospace; color: var(--ink); overflow-wrap: anywhere; padding: 12px; border: 1px solid var(--rule); border-radius: 6px; }
+      #small-screen .row { display: flex; flex-wrap: wrap; gap: 8px; }
+      #small-screen button {
+        min-height: 44px;
+        padding: 0 16px;
+        font: 500 16px 'IBM Plex Sans', system-ui, sans-serif;
+        border-radius: 6px;
+        border: 1px solid var(--rule);
+        background: transparent;
+        color: var(--ink);
+        cursor: pointer;
+      }
+      #small-screen button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+      #small-screen button:active { opacity: 0.8; }
+      #small-screen button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+      #small-screen .small { font-size: 14px; }
+    </style>
+    <script>
+      try {
+        if (sessionStorage.getItem('b2cpe.allowSmall') === '1') document.documentElement.classList.add('allow-small');
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <app-root></app-root>
+    <section id="small-screen" aria-labelledby="small-title">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" fill="#0462d3"/><g transform="translate(5.12 5.12) scale(0.9067)" fill="none" stroke="#f8fbfe" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v6M5 15v6M19 9v6M5 9a2 2 0 100 6 2 2 0 000-6zM19 3a2 2 0 100 6 2 2 0 000-6zM19 15a2 2 0 100 6 2 2 0 000-6zM7 12h4a4 4 0 004-4V6M15 18h-4"/></g></svg>
+      <h1 id="small-title">Open this on a larger screen</h1>
+      <p>B2C policy editor shows a whole user journey, the details of each step and the XML side by side, so it needs a screen at least 768 pixels wide.</p>
+      <p>Open this link on a laptop or desktop. Your policy files never leave your device, and there is nothing to install.</p>
+      <div class="url" id="small-url"></div>
+      <div class="row">
+        <button type="button" class="primary" id="small-copy">Copy link</button>
+        <button type="button" id="small-open">Open the editor anyway</button>
+      </div>
+      <p class="small" id="small-status" role="status"></p>
+    </section>
+    <script>
+      (function () {
+        var url = location.origin + location.pathname;
+        document.getElementById('small-url').textContent = url;
+        document.getElementById('small-copy').addEventListener('click', function () {
+          var status = document.getElementById('small-status');
+          function done(ok) { status.textContent = ok ? 'Link copied.' : 'Could not copy. Select the link above and copy it.'; }
+          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(function () { done(true); }, function () { done(false); });
+          else done(false);
+        });
+        document.getElementById('small-open').addEventListener('click', function () {
+          try { sessionStorage.setItem('b2cpe.allowSmall', '1'); } catch (e) {}
+          document.documentElement.classList.add('allow-small');
+        });
+      })();
+    </script>
   </body>
 </html>
