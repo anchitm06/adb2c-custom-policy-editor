@@ -90,15 +90,17 @@ Code layout:
 - `src/styles/tokens.scss`: the design tokens (Hallmark Cobalt theme, light and dark)
 
 The link preview (Open Graph and Twitter card tags) lives in `src/index.html` with absolute URLs for
-the GitHub Pages address. If the site moves, update them there.
+the custom domain. If the site moves, update them there.
 
 Fonts (IBM Plex Sans, Familjen Grotesk, JetBrains Mono) are bundled with the app through
 Fontsource, so the site makes no third-party requests.
 
 ## Deployment (GitHub Pages)
 
-`.github/workflows/deploy.yml` lints, tests, builds with `--base-href /<repo>/` and publishes to
-GitHub Pages on every push to `main`. In the repository settings, set **Pages, Build and
+`.github/workflows/deploy.yml` lints, tests, builds with `--base-href /` and publishes to
+GitHub Pages on every push to `main`. The site is served from the custom domain
+`https://adb2cpolicyeditor.anchitmathur.in/`: a CNAME record for `adb2cpolicyeditor` points to
+`anchitm06.github.io`, and the domain is set under **Pages, Custom domain** with **Enforce HTTPS** on. In the repository settings, set **Pages, Build and
 deployment, Source** to **GitHub Actions** once. `.github/workflows/ci.yml` runs the same checks
 for pull requests. `.github/workflows/links.yml` runs weekly and opens an issue when a Microsoft
 Learn link used by the site stops working.

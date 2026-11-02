@@ -33,7 +33,7 @@ jobs:
       - name: Write build info
         run: node scripts/write-build-info.mjs
       - name: Build
-        run: npx ng build --base-href "/${{ github.event.repository.name }}/"
+        run: npx ng build --base-href /
       - name: SPA fallback
         run: cp dist/custom-policy-editor/browser/index.html dist/custom-policy-editor/browser/404.html
       - uses: actions/upload-pages-artifact@v3

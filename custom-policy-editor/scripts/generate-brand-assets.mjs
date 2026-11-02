@@ -81,7 +81,7 @@ i{margin-top:6px;font:500 16px 'IBM Plex Sans';font-style:normal;border:1px soli
   <div class="brand">${markSvg({ rounded: true, inset: 0.16 })}<span>B2C policy editor</span></div>
   <h1>See when each step runs</h1>
   <p>Understand Azure AD B2C custom policies: preconditions in plain words and the claims in the user session at every step.</p>
-  <div class="url">anchitm06.github.io/adb2c-custom-policy-editor</div>
+  <div class="url">adb2cpolicyeditor.anchitmathur.in</div>
 </div>
 <div class="right">
   ${card(1, 'Sign-in page', 'Self-asserted', 'Always runs', C.success)}

@@ -22,4 +22,4 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: node scripts/write-build-info.mjs
-      - run: npx ng build --base-href "/${{ github.event.repository.name }}/"
+      - run: npx ng build --base-href /
