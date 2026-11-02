@@ -229,7 +229,7 @@ const RUN_OPS: { op: AtomOp; label: string }[] = [
     .explain .lint { margin-left: 0; }
     .ex-head { display: flex; align-items: center; gap: 6px; color: var(--text-2); margin-bottom: 6px; }
     .ex-head strong { color: var(--text); }
-    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-sm); }
     h4 { margin: 8px 0 4px; }
     h4 em { font-style: normal; color: var(--text); }
     ol, ul { margin: 0; padding-left: 18px; }

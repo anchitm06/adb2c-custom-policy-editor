@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, output, signal } from '@angular/core';
 import { idKey } from '../../core/model/types';
 import { stepKey } from '../../core/analysis/journey-analyzer';
 import { EditorStore } from '../../state/editor.store';
@@ -56,6 +56,7 @@ import { stepTypeInfo, tpKindInfo } from '../../shared/present';
 })
 export class StepOutline {
   protected readonly store = inject(EditorStore);
+  readonly picked = output<void>();
   protected readonly filter = signal('');
   protected readonly selected = computed(() => {
     const s = this.store.selection();
@@ -109,5 +110,6 @@ export class StepOutline {
   protected go(it: { key: string; journeyId: string }): void {
     this.store.select({ kind: 'step', journeyId: it.journeyId, stepKey: it.key });
     this.store.focusStep.set(it.key);
+    this.picked.emit();
   }
 }

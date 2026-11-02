@@ -77,7 +77,7 @@ export function validateFile(f: ParsedFile, all: ParsedFile[]): Diagnostic[] {
     s.add({ severity: 'error', code: 'root.duplicate', message: `Another loaded file also has PolicyId ${d.policyId}.`, ref: root, target: fileTarget });
 
   for (const p of PLACEHOLDERS) {
-    if (p.re.test(f.text)) s.add({ severity: 'info', code: 'placeholder', message: `Contains the starter pack ${p.what}. Replace it before uploading (Workspace → Set tenant).`, ref: root, target: fileTarget });
+    if (p.re.test(f.text)) s.add({ severity: 'info', code: 'placeholder', message: `Contains the starter pack ${p.what}. Replace it before uploading (Menu, Set tenant).`, ref: root, target: fileTarget });
   }
 
   const dup = (kind: string, items: { id: string; ref: SourceRef }[], target: TargetKind) => {

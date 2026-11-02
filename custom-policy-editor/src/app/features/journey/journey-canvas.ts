@@ -11,6 +11,7 @@ import { Icon } from '../../shared/icon';
 import { AVAILABILITY_CLASS, STEP_TYPE_INFO, stepTypeInfo, tpKindInfo } from '../../shared/present';
 import { SelectValue } from '../../shared/select-value';
 import { ScenarioPicker } from '../scenario/scenario-picker';
+import { ClaimsTimeline } from '../claims-bag/claims-timeline';
 
 interface ExchangeVM {
   id: string;
@@ -48,7 +49,7 @@ interface StepVM {
 
 @Component({
   selector: 'app-journey-canvas',
-  imports: [SelectValue, Icon, ScenarioPicker, CdkDropList, CdkDrag, CdkDragHandle],
+  imports: [SelectValue, Icon, ScenarioPicker, ClaimsTimeline, CdkDropList, CdkDrag, CdkDragHandle],
   template: `
     @if (journey(); as j) {
       <div class="toolbar">
@@ -70,9 +71,18 @@ interface StepVM {
           </select>
           <span class="layer" [title]="store.fileName(j.ref.fileId)">{{ store.layerOf(j.ref.fileId) }}</span>
         </div>
-        <app-scenario-picker />
-        <label class="small row showclaims"><input type="checkbox" [checked]="showClaims()" (change)="showClaims.set(!showClaims())" /> Claims on cards</label>
+        <div class="seg" role="group" aria-label="View">
+          <button type="button" [attr.aria-pressed]="store.lens() === 'flow'" (click)="store.lens.set('flow')">Flow</button>
+          <button type="button" [attr.aria-pressed]="store.lens() === 'map'" (click)="store.lens.set('map')">Claims map</button>
+        </div>
+        <button class="btn ghost" type="button" title="Journey details, scenarios and XML" (click)="store.select({ kind: 'journey', id: j.id })"><app-icon name="settings" [size]="15" /> Details</button>
       </div>
+      @if (store.lens() === 'flow') {
+        <div class="toolbar second">
+          <app-scenario-picker />
+          <label class="small row showclaims"><input type="checkbox" [checked]="showClaims()" (change)="showClaims.set(!showClaims())" /> Show claims on every step</label>
+        </div>
+      }
       @if (analysis()?.approximate) {
         <div class="banner top small">
           <app-icon name="info" [size]="15" />
@@ -88,7 +98,10 @@ interface StepVM {
         </div>
       }
 
-      <div class="canvas" (click)="onCanvasClick($event)" role="presentation">
+      @if (store.lens() === 'map') {
+        <app-claims-timeline class="map" />
+      } @else {
+      <div class="canvas" (click)="onCanvasClick($event)" role="presentation" data-tour="canvas">
         <div class="node start">
           <app-icon name="start" [size]="18" />
           <div>
@@ -255,6 +268,7 @@ interface StepVM {
           </div>
         </div>
       </div>
+      }
 
       @if (adding(); as a) {
         <div class="addmenu card" [style.top.px]="a.y" [style.left.px]="a.x" role="menu" tabindex="-1" (click)="$event.stopPropagation()" (keydown.escape)="adding.set(null)">
@@ -531,8 +545,9 @@ export class JourneyCanvas {
 
   protected remove(s: StepVM, e: Event): void {
     e.stopPropagation();
-    this.store.edit(`Delete step ${s.step.orderText}`, [{ fileId: s.step.ref.fileId, mutate: (d) => removeStep(d, s.step.ref) }]);
+    const ok = this.store.edit(`Delete step ${s.step.orderText}`, [{ fileId: s.step.ref.fileId, mutate: (d) => removeStep(d, s.step.ref) }]);
     this.store.select(null);
+    if (ok) this.store.toast({ kind: 'info', title: `Deleted step ${s.step.orderText}`, lines: [], action: { label: 'Undo', run: () => this.store.undo() } });
   }
 
   protected drop(e: CdkDragDrop<unknown>): void {

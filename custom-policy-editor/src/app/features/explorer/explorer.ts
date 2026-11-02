@@ -1,10 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, output, signal } from '@angular/core';
 import { TP_KINDS, TpKind } from '../../core/catalog/technical-profiles';
 import { CLAIMS_TRANSFORMATIONS } from '../../core/catalog/claims-transformations';
 import { addClaimsTransformation, addClaimType, addContentDefinition, addJourney, addTechnicalProfile, element } from '../../core/edit/commands';
 import { idKey } from '../../core/model/types';
 import { EditorStore, Selection, View } from '../../state/editor.store';
 import { Icon } from '../../shared/icon';
+import { SelectValue } from '../../shared/select-value';
 import { StepOutline } from '../outline/step-outline';
 import { tpKindInfo } from '../../shared/present';
 
@@ -34,12 +35,31 @@ const VIEW_TITLES: Record<View, string> = {
   files: 'Files',
 };
 
+const LIBRARY_KINDS: { view: View; label: string }[] = [
+  { view: 'technicalProfiles', label: 'Technical profiles' },
+  { view: 'claims', label: 'Claims' },
+  { view: 'transformations', label: 'Claims transformations' },
+  { view: 'contentDefinitions', label: 'Pages (content definitions)' },
+  { view: 'localization', label: 'Text (localization)' },
+  { view: 'displayControls', label: 'Display controls' },
+  { view: 'predicates', label: 'Rules (predicates)' },
+];
+
 @Component({
   selector: 'app-explorer',
-  imports: [Icon, StepOutline],
+  imports: [Icon, StepOutline, SelectValue],
   template: `
     <div class="panel-header">
-      <strong class="grow truncate">{{ title() }}</strong>
+      @if (isLibrary()) {
+        <label class="visually-hidden" for="lib-kind">Library section</label>
+        <select id="lib-kind" class="kind grow" [appValue]="store.view()" (change)="setKind($any($event.target).value)">
+          @for (k of libraryKinds; track k.view) {
+            <option [value]="k.view">{{ k.label }}</option>
+          }
+        </select>
+      } @else {
+        <strong class="grow truncate">{{ title() }}</strong>
+      }
       <span class="muted small">{{ items().length }}</span>
       @if (canCreate()) {
         <button class="btn ghost sm icon" [title]="'New ' + newNoun()" (click)="creating.set(!creating()); newKind.set('')"><app-icon name="plus" [size]="15" /></button>
@@ -104,7 +124,7 @@ const VIEW_TITLES: Record<View, string> = {
       }
     </div>
     @if (store.view() === 'journeys' && store.activeJourney()) {
-      <app-step-outline class="outline" />
+      <app-step-outline class="outline" (picked)="picked.emit()" />
     }
   `,
   styles: `
@@ -113,7 +133,8 @@ const VIEW_TITLES: Record<View, string> = {
     .search input { flex: 1; height: 26px; }
     .list { flex: 1 1 35%; overflow: auto; padding: 4px 6px 12px; min-height: 120px; }
     .outline { flex: 1 1 55%; border-top: 1px solid var(--border); min-height: 160px; }
-    .group { font-size: var(--text-xs); color: var(--text-3); font-weight: 700; padding: 10px 8px 3px; }
+    .group { font-family: var(--font-display); font-size: var(--text-sm); color: var(--text-3); font-weight: 500; padding: var(--space-sm) var(--space-xs) var(--space-2xs); }
+    .kind { font-family: var(--font-display); font-weight: 600; font-size: var(--text-md); border-color: transparent; background: transparent; padding-left: 0; }
     .txt { line-height: 1.3; }
     .active { font-weight: 600; }
     .create { padding: 8px 10px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; background: var(--surface-2); }
@@ -122,6 +143,8 @@ const VIEW_TITLES: Record<View, string> = {
 })
 export class Explorer {
   protected readonly store = inject(EditorStore);
+  /** Something was chosen from the list (used to close the list drawer on narrow screens). */
+  readonly picked = output<void>();
   protected readonly filter = signal('');
   protected readonly creating = signal(false);
   protected readonly tpKinds = (['selfAsserted', 'rest', 'entraId', 'claimsTransformation', 'oidc', 'oauth2', 'saml', 'jwtIssuer', 'otp', 'phoneFactor', 'session'] as TpKind[]).map((k) => TP_KINDS[k]);
@@ -129,6 +152,15 @@ export class Explorer {
   protected readonly newKind = signal('');
 
   protected readonly title = computed(() => VIEW_TITLES[this.store.view()]);
+  protected readonly libraryKinds = LIBRARY_KINDS;
+  protected readonly isLibrary = computed(() => LIBRARY_KINDS.some((k) => k.view === this.store.view()));
+
+  protected setKind(v: View): void {
+    this.store.view.set(v);
+    this.store.selection.set(null);
+    this.filter.set('');
+    this.creating.set(false);
+  }
   protected readonly canCreate = computed(() => ['journeys', 'technicalProfiles', 'claims', 'transformations', 'contentDefinitions'].includes(this.store.view()) && !!this.store.targetFile());
   protected readonly newNoun = computed(
     () => ({ journeys: 'journey', technicalProfiles: 'technical profile', claims: 'claim', transformations: 'claims transformation', contentDefinitions: 'content definition' })[this.store.view() as 'claims'] ?? 'item',
@@ -199,13 +231,16 @@ export class Explorer {
 
   protected isSelected(it: Item): boolean {
     const s = this.store.selection();
+    if (this.store.view() === 'journeys' && it.sel?.kind === 'journey') return !!it.active;
     if (!s || !it.sel) return false;
     if (s.kind === 'relyingParty' && it.sel.kind === 'relyingParty') return !!it.active;
+    if (this.store.view() === 'journeys' && it.sel.kind === 'journey') return !!it.active;
     if (s.kind === 'step' && it.sel.kind === 'journey') return idKey(s.journeyId) === idKey(it.sel.id);
     return s.kind === it.sel.kind && 'id' in s && 'id' in it.sel && idKey(s.id) === idKey(it.sel.id);
   }
 
   protected pick(it: Item): void {
+    this.picked.emit();
     const v = this.store.view();
     if (v === 'journeys' && it.sel?.kind === 'journey') {
       this.store.openJourney(it.sel.id);

@@ -47,6 +47,8 @@ export interface Toast {
   title: string;
   lines: string[];
   impact?: Impact;
+  /** An optional action, for example Undo after a delete. */
+  action?: { label: string; run: () => void };
 }
 
 @Injectable({ providedIn: 'root' })
@@ -67,9 +69,12 @@ export class EditorStore {
   readonly focusStep = signal<string | null>(null);
   readonly xmlFileId = signal<string | null>(null);
   readonly mainMode = signal<'visual' | 'xml'>('visual');
-  readonly bottomTab = signal<'problems' | 'claims' | 'timeline'>('claims');
-  readonly bottomOpen = signal(true);
-  readonly inspectorTab = signal<'step' | 'pre' | 'claims' | 'xml'>('step');
+  /** The Problems drawer, opened from the status bar or the top bar. */
+  readonly problemsOpen = signal(false);
+  /** The journey view: the flow of steps, or the claims map (claims by step). */
+  readonly lens = signal<'flow' | 'map'>('flow');
+  readonly paletteOpen = signal(false);
+  readonly inspectorTab = signal<'overview' | 'pre' | 'claims' | 'xml'>('overview');
   readonly theme = signal<'light' | 'dark' | 'system'>((readPref('theme') as 'light' | 'dark' | 'system') ?? 'system');
 
   private readonly undoStack = signal<HistoryEntry[]>([]);
@@ -425,7 +430,7 @@ export class EditorStore {
     const id = ++this.toastSeq;
     this.toasts.update((ts) => [...ts.slice(-1), { ...t, id }]);
     const quiet = t.kind === 'impact' && !t.impact?.hasChanges;
-    setTimeout(() => this.dismissToast(id), t.kind === 'error' ? 8000 : quiet ? 2500 : 6000);
+    setTimeout(() => this.dismissToast(id), t.kind === 'error' || t.action ? 8000 : quiet ? 2500 : 6000);
   }
 
   dismissToast(id: number): void {
@@ -591,7 +596,7 @@ export class EditorStore {
     this.clearScenario();
     this.view.set('journeys');
     this.mainMode.set('visual');
-    this.selection.set({ kind: 'journey', id });
+    this.selection.set(null);
   }
 
   revealRef(ref: SourceRef): void {

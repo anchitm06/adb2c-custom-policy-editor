@@ -636,6 +636,10 @@ table.grid {
   border-radius: var(--radius-part);
   background: var(--surface-2);
   color: var(--text);
+  flex-wrap: wrap;
+  > .grow {
+    flex: 1 1 240px;
+  }
   > app-icon:first-child {
     color: var(--info);
     margin-top: var(--space-3xs);

@@ -11,17 +11,30 @@
   padding: var(--space-xs) var(--space-md);
   border-bottom: var(--rule-hair) solid var(--border);
   background: var(--surface);
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   flex: none;
   min-width: 0;
+}
+.toolbar.second {
+  padding-top: var(--space-2xs);
+  padding-bottom: var(--space-xs);
+  background: var(--surface-2);
+}
+.map {
+  flex: 1;
+  min-height: 0;
+  display: block;
 }
 .jsel {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-xs);
+  min-width: 0;
+  flex: 0 1 auto;
   select {
     font-weight: 600;
-    max-width: 280px;
+    max-width: 260px;
+    min-width: 0;
   }
 }
 .showclaims {
@@ -37,7 +50,8 @@
   }
 }
 .banner.top {
-  margin: 10px 14px 0;
+  flex: none;
+  margin: var(--space-sm) var(--space-md) 0;
 }
 .canvas {
   flex: 1;
@@ -209,6 +223,7 @@
 }
 .head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-xs);
   min-width: 0;
