@@ -1,0 +1,305 @@
+@if (tp(); as t) {
+  <header class="ed-head">
+    <app-icon [name]="kind().icon" [size]="22" />
+    <div class="grow">
+      <h2>{{ t.displayName || t.id }}</h2>
+      <div class="muted small">
+        <span class="mono">{{ t.id }}</span> · {{ kind().label }} · <a [href]="docs()" target="_blank" rel="noopener">docs</a>
+      </div>
+    </div>
+    <div class="layers">
+      @for (f of layerFiles(); track f) {
+        <span class="layer" [title]="store.fileName(f)">{{ store.layerOf(f) }}</span>
+      }
+    </div>
+  </header>
+
+  <div class="ed-body">
+    <div class="banner" [class.warning]="isOverride()">
+      <app-icon name="layers" />
+      <div class="grow">
+        @if (isOverride()) {
+          Changes are written to <strong>{{ store.fileName(writeFile()!) }}</strong> as an override. The definition in {{ store.fileName(layerFiles()[0]) }} stays untouched, as Microsoft recommends.
+        } @else {
+          Changes are written to <strong>{{ store.fileName(writeFile()!) }}</strong>.
+        }
+        <div class="row" style="margin-top: 4px">
+          <label class="small muted" for="tp-write">Write changes to</label>
+          <select id="tp-write" [appValue]="writeFile()" (change)="setWrite($any($event.target).value)">
+            @for (o of writeOptions(); track o.id) {
+              <option [value]="o.id">{{ o.label }}</option>
+            }
+          </select>
+        </div>
+      </div>
+    </div>
+
+    @for (d of problems(); track d.key) {
+      <div class="banner {{ d.severity }} small"><app-icon [name]="d.severity" [size]="14" /> {{ d.message }}</div>
+    }
+
+    <section class="card sec">
+      <h3>General</h3>
+      <div class="grid2">
+        <div class="field">
+          <label for="tp-dn">Display name</label>
+          <input id="tp-dn" type="text" [value]="t.displayName ?? ''" (change)="setText('DisplayName', $any($event.target).value)" />
+          <span class="hint">Shown on provider selection buttons.</span>
+        </div>
+        <div class="field">
+          <label for="tp-kind">Type (protocol)</label>
+          <select id="tp-kind" [appValue]="t.kind" (change)="setKind($any($event.target).value)">
+            @if (t.kind === 'unknown') {
+              <option value="unknown">(not set — {{ t.protocol?.name ?? 'inherited' }})</option>
+            }
+            @for (k of kinds; track k.kind) {
+              <option [value]="k.kind">{{ k.label }}</option>
+            }
+          </select>
+          <span class="hint mono">{{ t.protocol?.name }}{{ t.protocol?.handler ? ' · ' + t.protocol!.handler!.split(',')[0] : '' }}</span>
+        </div>
+        <div class="field">
+          <label for="tp-inc">Include technical profile</label>
+          <input id="tp-inc" type="text" list="tp-ids" [value]="t.includeTechnicalProfile?.referenceId ?? ''" (change)="setRef('IncludeTechnicalProfile', $any($event.target).value)" />
+          @if (t.includeChain.length) {
+            <span class="hint">Inherits from
+              @for (i of t.includeChain; track i; let last = $last) {
+                <a href="#" (click)="open(i); $event.preventDefault()">{{ i }}</a>{{ last ? '' : ' → ' }}
+              }
+            </span>
+          }
+        </div>
+        <div class="field">
+          <label for="tp-sm">Session management</label>
+          <select id="tp-sm" [appValue]="t.useTechnicalProfileForSessionManagement?.referenceId ?? ''" (change)="setRef('UseTechnicalProfileForSessionManagement', $any($event.target).value)">
+            <option value="">(none)</option>
+            @for (s of sessionTps(); track s) {
+              <option [value]="s">{{ s }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label for="tp-efj">Enabled for user journeys</label>
+          <select id="tp-efj" [appValue]="t.enabledForUserJourneys ?? ''" (change)="setText('EnabledForUserJourneys', $any($event.target).value)">
+            <option value="">(default: Always)</option>
+            @for (v of ['Always', 'Never', 'OnClaimsExistence', 'OnItemExistenceInStringCollectionClaim', 'OnItemAbsenceInStringCollectionClaim']; track v) {
+              <option [value]="v">{{ v }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label for="tp-desc">Description</label>
+          <input id="tp-desc" type="text" [value]="t.description ?? ''" (change)="setText('Description', $any($event.target).value)" />
+        </div>
+      </div>
+      <p class="muted small">{{ kind().description }}</p>
+    </section>
+
+    <section class="card sec">
+      <h3>Metadata <span class="muted small">{{ metadata().length }}</span></h3>
+      <table class="grid">
+        <thead><tr><th style="width: 34%">Key</th><th>Value</th><th style="width: 110px">From</th><th style="width: 30px"></th></tr></thead>
+        <tbody>
+          @for (r of metadata(); track r.item.key) {
+            <tr>
+              <td class="mono" [title]="metaHelp(r.item.key)">{{ r.item.key }}</td>
+              <td>
+                @if (r.item.key === 'ContentDefinitionReferenceId') {
+                  <select [appValue]="r.item.value" (change)="setMeta(r.item.key, $any($event.target).value)" [attr.aria-label]="r.item.key">
+                    @for (c of contentDefs(); track c) {
+                      <option [value]="c">{{ c }}</option>
+                    }
+                  </select>
+                } @else if (metaValues(r.item.key).length) {
+                  <select [appValue]="r.item.value" (change)="setMeta(r.item.key, $any($event.target).value)" [attr.aria-label]="r.item.key">
+                    @if (!metaValues(r.item.key).includes(r.item.value)) {
+                      <option [value]="r.item.value">{{ r.item.value }}</option>
+                    }
+                    @for (v of metaValues(r.item.key); track v) {
+                      <option [value]="v">{{ v }}</option>
+                    }
+                  </select>
+                } @else {
+                  <input type="text" [value]="r.item.value" (change)="setMeta(r.item.key, $any($event.target).value)" [attr.aria-label]="r.item.key" />
+                }
+              </td>
+              <td><span class="layer" [title]="store.fileName(r.item.ref.fileId)">{{ r.from }}</span></td>
+              <td>
+                @if (r.own) {
+                  <button class="btn ghost sm icon" title="Remove" (click)="removeOwn(r.item.ref, 'Remove metadata ' + r.item.key)"><app-icon name="close" [size]="13" /></button>
+                }
+              </td>
+            </tr>
+          }
+          <tr class="add">
+            <td><input type="text" list="meta-keys" placeholder="Add key…" [value]="newMetaKey()" (input)="newMetaKey.set($any($event.target).value)" aria-label="New metadata key" /></td>
+            <td><input #nv type="text" placeholder="value" aria-label="New metadata value" (keydown.enter)="addMeta(newMetaKey(), nv.value); nv.value = ''" /></td>
+            <td colspan="2"><button class="btn sm" [disabled]="!newMetaKey()" (click)="addMeta(newMetaKey(), nv.value); nv.value = ''">Add</button></td>
+          </tr>
+        </tbody>
+      </table>
+      @if (newMetaKey() && metaHelp(newMetaKey())) {
+        <p class="hint small muted">{{ metaHelp(newMetaKey()) }}</p>
+      }
+      <datalist id="meta-keys">
+        @for (m of metaKeys(); track m.key) {
+          <option [value]="m.key">{{ m.description }}</option>
+        }
+      </datalist>
+    </section>
+
+    <ng-template #claimTable let-rows="rows" let-col="col" let-title="title" let-hint="hint">
+      <section class="card sec">
+        <h3>{{ title }} <span class="muted small">{{ rows.length }}</span></h3>
+        @if (hint) {
+          <p class="muted small">{{ hint }}</p>
+        }
+        <table class="grid">
+          <thead><tr><th>Claim</th>
+            @if (col !== 'DisplayClaims') {
+              <th>Partner claim type</th><th>Default value</th><th title="AlwaysUseDefaultValue">Always default</th>
+            }
+            <th>Required</th><th style="width: 110px">From</th><th style="width: 30px"></th></tr></thead>
+          <tbody>
+            @for (r of rows; track $index) {
+              <tr>
+                <td class="mono"><a href="#" (click)="openStepOrClaim(r.item.claimTypeReferenceId ?? r.item.displayControlReferenceId); $event.preventDefault()">{{ r.item.claimTypeReferenceId ?? ('control: ' + r.item.displayControlReferenceId) }}</a></td>
+                @if (col !== 'DisplayClaims') {
+                  <td><input type="text" [value]="r.item.partnerClaimType ?? ''" aria-label="Partner claim type" (change)="setClaimAttr(col, r, 'PartnerClaimType', $any($event.target).value || null)" /></td>
+                  <td><input type="text" [value]="r.item.defaultValue ?? ''" aria-label="Default value" (change)="setClaimAttr(col, r, 'DefaultValue', $any($event.target).value || null)" /></td>
+                  <td><input type="checkbox" [checked]="!!r.item.alwaysUseDefaultValue" aria-label="Always use default value" (change)="setClaimAttr(col, r, 'AlwaysUseDefaultValue', $any($event.target).checked ? 'true' : null)" /></td>
+                }
+                <td><input type="checkbox" [checked]="!!r.item.required" aria-label="Required" (change)="setClaimAttr(col, r, 'Required', $any($event.target).checked ? 'true' : null)" /></td>
+                <td><span class="layer" [title]="store.fileName(r.item.ref.fileId)">{{ r.from }}</span></td>
+                <td>
+                  @if (r.own) {
+                    <button class="btn ghost sm icon" title="Remove" (click)="removeOwn(r.item.ref, 'Remove claim')"><app-icon name="close" [size]="13" /></button>
+                  } @else {
+                    <span class="muted" title="Inherited claims can't be removed from a derived file">—</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        <div class="row addrow">
+          <app-claim-picker class="grow" placeholder="Add a claim…" (changed)="addClaim(col, $event)" />
+        </div>
+      </section>
+    </ng-template>
+
+    <ng-container *ngTemplateOutlet="claimTable; context: { rows: inputClaims(), col: 'InputClaims', title: 'Input claims', hint: 'Read from the claims bag before the profile runs.' }" />
+    @if (t.kind === 'selfAsserted' || displayClaims().length) {
+      <ng-container *ngTemplateOutlet="claimTable; context: { rows: displayClaims(), col: 'DisplayClaims', title: 'Display claims', hint: 'Fields shown on the page, in order.' }" />
+    }
+    @if (t.kind === 'entraId' || persistedClaims().length) {
+      <ng-container *ngTemplateOutlet="claimTable; context: { rows: persistedClaims(), col: 'PersistedClaims', title: 'Persisted claims', hint: 'Written to the directory.' }" />
+    }
+    <ng-container *ngTemplateOutlet="claimTable; context: { rows: outputClaims(), col: 'OutputClaims', title: 'Output claims', hint: 'Added to the claims bag after the profile runs.' }" />
+
+    <section class="card sec">
+      <h3>Claims transformations</h3>
+      <div class="grid2">
+        <div>
+          <h4>Before (input)</h4>
+          @for (r of inputCts(); track r.item.referenceId) {
+            <div class="row li"><a class="grow mono" href="#" (click)="store.select({ kind: 'transformation', id: r.item.referenceId }); $event.preventDefault()">{{ r.item.referenceId }}</a><span class="layer">{{ r.from }}</span>
+              @if (r.own) {
+                <button class="btn ghost sm icon" title="Remove" (click)="removeOwn(r.item.ref, 'Remove transformation')"><app-icon name="close" [size]="13" /></button>
+              }
+            </div>
+          }
+          <select (change)="addRef('InputClaimsTransformations', $any($event.target).value); $any($event.target).value = ''" aria-label="Add input transformation">
+            <option value="">Add…</option>
+            @for (c of ctIds(); track c) {
+              <option [value]="c">{{ c }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <h4>After (output)</h4>
+          @for (r of outputCts(); track r.item.referenceId) {
+            <div class="row li"><a class="grow mono" href="#" (click)="store.select({ kind: 'transformation', id: r.item.referenceId }); $event.preventDefault()">{{ r.item.referenceId }}</a><span class="layer">{{ r.from }}</span>
+              @if (r.own) {
+                <button class="btn ghost sm icon" title="Remove" (click)="removeOwn(r.item.ref, 'Remove transformation')"><app-icon name="close" [size]="13" /></button>
+              }
+            </div>
+          }
+          <select (change)="addRef('OutputClaimsTransformations', $any($event.target).value); $any($event.target).value = ''" aria-label="Add output transformation">
+            <option value="">Add…</option>
+            @for (c of ctIds(); track c) {
+              <option [value]="c">{{ c }}</option>
+            }
+          </select>
+        </div>
+      </div>
+    </section>
+
+    @if (t.kind === 'selfAsserted' || vtps().length) {
+      <section class="card sec">
+        <h3>Validation technical profiles</h3>
+        <p class="muted small">Run in order when the user submits the page. Their output claims are only kept if this profile also lists them as output claims.</p>
+        @for (r of vtps(); track r.item.referenceId) {
+          <div class="vtp">
+            <div class="row">
+              <a class="grow mono" href="#" (click)="open(r.item.referenceId); $event.preventDefault()">{{ r.item.referenceId }}</a>
+              <label class="small row"><input type="checkbox" [checked]="!!r.item.continueOnError" (change)="setVtpAttr(r.item.ref, 'ContinueOnError', $any($event.target).checked ? 'true' : null, r.own)" /> continue on error</label>
+              <button class="btn sm" (click)="openVtp.set(openVtp() === r.item.referenceId ? null : r.item.referenceId)">
+                <app-icon name="skip" [size]="13" /> {{ r.item.preconditions.length ? r.item.preconditions.length + ' precondition' + (r.item.preconditions.length > 1 ? 's' : '') : 'Add precondition' }}
+              </button>
+              <span class="layer">{{ r.from }}</span>
+              @if (r.own) {
+                <button class="btn ghost sm icon" title="Remove" (click)="removeOwn(r.item.ref, 'Remove validation profile')"><app-icon name="close" [size]="13" /></button>
+              }
+            </div>
+            @if (openVtp() === r.item.referenceId) {
+              <div class="vtp-pre">
+                <app-precondition-editor [preconditions]="r.item.preconditions" [ownerRef]="r.item.ref" action="SkipThisValidationTechnicalProfile" subject="this validation profile" />
+              </div>
+            }
+          </div>
+        }
+        <select (change)="addRef('ValidationTechnicalProfiles', $any($event.target).value); $any($event.target).value = ''" aria-label="Add validation profile">
+          <option value="">Add validation profile…</option>
+          @for (c of allTpIds(); track c) {
+            <option [value]="c">{{ c }}</option>
+          }
+        </select>
+      </section>
+    }
+
+    @if (t.cryptographicKeys.length) {
+      <section class="card sec">
+        <h3>Cryptographic keys</h3>
+        @for (k of t.cryptographicKeys; track $index) {
+          <div class="row li"><span class="mono">{{ k.id }}</span><span class="grow muted mono">{{ k.storageReferenceId }}</span><span class="layer">{{ store.layerOf(k.ref.fileId) }}</span></div>
+        }
+      </section>
+    }
+
+    <section class="card sec">
+      <h3>Used by</h3>
+      @for (u of usages(); track u.label) {
+        <div class="list-item" role="button" tabindex="0" (click)="u.go()" (keydown.enter)="u.go()"><app-icon name="link" [size]="13" /> {{ u.label }}</div>
+      } @empty {
+        <p class="muted small">Not referenced by any journey step or other technical profile in this chain.</p>
+      }
+    </section>
+
+    @if (xmlRef(); as xr) {
+      <section class="card sec">
+        <h3 class="row">XML <span class="muted small">({{ store.fileName(xr.fileId) }})</span><span class="spacer"></span><button class="btn sm" (click)="showXml.set(!showXml())">{{ showXml() ? 'Hide' : 'Show' }}</button></h3>
+        @if (showXml()) {
+          <app-element-xml [ref]="xr" [label]="'Edit XML of ' + t.id" />
+        }
+      </section>
+    }
+  </div>
+  <datalist id="tp-ids">
+    @for (i of allTpIds(); track i) {
+      <option [value]="i"></option>
+    }
+  </datalist>
+} @else {
+  <div class="empty">Technical profile “{{ tpId() }}” is not defined in this policy chain.</div>
+}
