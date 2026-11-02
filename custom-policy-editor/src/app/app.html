@@ -122,6 +122,9 @@
   <app-command-palette />
 }
 
+<router-outlet />
+<app-tour />
+
 <div class="toasts" aria-live="polite">
   @for (t of store.toasts(); track t.id) {
     <div class="toast card {{ t.kind }}">

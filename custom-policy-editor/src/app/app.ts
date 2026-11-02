@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { EditorStore, View } from './state/editor.store';
 import { Icon } from './shared/icon';
 import { Explorer } from './features/explorer/explorer';
@@ -17,6 +17,9 @@ import { RelyingPartyEditor } from './features/relying-party/relying-party-edito
 import { FilesView } from './features/workspace/files-view';
 import { Welcome } from './features/workspace/welcome';
 import { XmlView } from './features/xml-editor/xml-view';
+import { RouterOutlet } from '@angular/router';
+import { DeepLinks } from './state/deep-links';
+import { Tour, TourService } from './shared/tour';
 import { TopBar } from './features/shell/top-bar';
 import { StatusBar } from './features/shell/status-bar';
 import { CommandPalette } from './features/shell/command-palette';
@@ -37,6 +40,8 @@ const LIBRARY_VIEWS: View[] = ['technicalProfiles', 'claims', 'transformations',
   selector: 'app-root',
   imports: [
     Icon,
+    RouterOutlet,
+    Tour,
     TopBar,
     StatusBar,
     CommandPalette,
@@ -85,7 +90,13 @@ export class App {
   });
 
   constructor() {
+    inject(DeepLinks);
+    const tour = inject(TourService);
     void this.store.restore();
+    // A new visitor gets the short tour once, as soon as a policy is on screen.
+    effect(() => {
+      if (this.store.loaded() && this.store.files().length > 0) tour.maybeStart();
+    });
   }
 
   protected go(d: Destination): void {

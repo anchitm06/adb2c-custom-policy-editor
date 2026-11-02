@@ -3,23 +3,20 @@
  * Checks that every Microsoft Learn link used by alerts and the Help page still works, including
  * the #anchor. Usage: node --experimental-strip-types scripts/check-doc-links.mjs [--report file]
  */
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 
 const root = resolve(new URL('..', import.meta.url).pathname);
-const sources = ['src/app/core/validate/diagnostic-catalog.ts', 'src/app/features/help/help-links.ts'];
+const catalog = 'src/app/core/validate/diagnostic-catalog.ts';
+// The Help text has no imports, so its links are read straight from the source.
+const helpText = 'src/app/features/help/help-content.ts';
 
 const links = new Map();
-for (const rel of sources) {
-  let mod;
-  try {
-    mod = await import(pathToFileURL(resolve(root, rel)).href);
-  } catch (e) {
-    if (e?.code === 'ERR_MODULE_NOT_FOUND') continue;
-    throw e;
-  }
-  for (const l of mod.allDocLinks?.() ?? []) if (!links.has(l.url)) links.set(l.url, { ...l, from: rel });
+const mod = await import(pathToFileURL(resolve(root, catalog)).href);
+for (const l of mod.allDocLinks()) if (!links.has(l.url)) links.set(l.url, { ...l, from: catalog });
+for (const m of readFileSync(resolve(root, helpText), 'utf8').matchAll(/https:\/\/learn\.microsoft\.com\/[^\s)'"`\]]+/g)) {
+  if (!links.has(m[0])) links.set(m[0], { label: 'Help page link', url: m[0], from: helpText });
 }
 
 const pages = new Map();

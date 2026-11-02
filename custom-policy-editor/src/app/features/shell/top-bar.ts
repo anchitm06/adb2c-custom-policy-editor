@@ -4,6 +4,9 @@ import { Icon } from '../../shared/icon';
 import { Popover } from '../../shared/popover';
 import { SelectValue } from '../../shared/select-value';
 import { exportZip } from '../workspace/file-io';
+import { buildAnalysisReport } from '../../core/analysis/report';
+import { BUILD_INFO } from '../../../build-info';
+import { TourService } from '../../shared/tour';
 
 /** The top bar: where you are (policy and layers), undo and redo, problems, mode, and one menu. */
 @Component({
@@ -40,7 +43,7 @@ import { exportZip } from '../workspace/file-io';
       <button class="btn ghost icon" type="button" [disabled]="!store.canUndo()" [title]="'Undo ' + store.undoLabel() + ' (Ctrl+Z)'" aria-label="Undo" (click)="store.undo()"><app-icon name="undo" /></button>
       <button class="btn ghost icon" type="button" [disabled]="!store.canRedo()" [title]="'Redo ' + store.redoLabel() + ' (Ctrl+Shift+Z)'" aria-label="Redo" (click)="store.redo()"><app-icon name="redo" /></button>
 
-      <button class="btn ghost counts" type="button" [attr.aria-label]="'Problems: ' + store.counts().error + ' errors, ' + store.counts().warning + ' warnings'" (click)="store.problemsOpen.set(!store.problemsOpen())">
+      <button class="btn ghost counts" type="button" data-tour="problems" [attr.aria-label]="'Problems: ' + store.counts().error + ' errors, ' + store.counts().warning + ' warnings'" (click)="store.problemsOpen.set(!store.problemsOpen())">
         <span class="c error"><app-icon name="error" [size]="14" /> {{ store.counts().error }}</span>
         <span class="c warning"><app-icon name="warning" [size]="14" /> {{ store.counts().warning }}</span>
       </button>
@@ -50,12 +53,15 @@ import { exportZip } from '../workspace/file-io';
         <button type="button" [attr.aria-pressed]="store.mainMode() === 'xml'" (click)="store.mainMode.set('xml')">XML</button>
       </div>
 
+      <a class="btn ghost" href="#/help" title="How to use this site, how the analysis works, privacy"><app-icon name="info" [size]="15" /> <span class="hide-sm">Help</span></a>
       <button class="btn ghost icon" type="button" title="Search everything (Ctrl+K)" aria-label="Search everything" (click)="store.paletteOpen.set(true)"><app-icon name="search" /></button>
 
       <app-popover align="end" label="Menu" [width]="260" [closeOnSelect]="true">
         <button popoverTrigger class="btn" type="button" aria-haspopup="menu">Menu <app-icon name="chevronDown" [size]="14" /></button>
         <button class="menu-item" type="button" role="menuitem" (click)="exportAll()"><app-icon name="download" [size]="15" /> Export files as zip</button>
         <button class="menu-item" type="button" role="menuitem" (click)="openTenant()"><app-icon name="files" [size]="15" /> Set tenant</button>
+        <button class="menu-item" type="button" role="menuitem" title="Counts and timings only, no names or identifiers" (click)="copyReport()"><app-icon name="copy" [size]="15" /> Copy analysis report</button>
+        <button class="menu-item" type="button" role="menuitem" (click)="tour.start()"><app-icon name="play" [size]="15" /> Replay the tour</button>
         <div class="menu-sep" role="separator"></div>
         <div class="menu-group" role="group" aria-label="Theme">
           <span class="small muted">Theme</span>
@@ -98,6 +104,34 @@ import { exportZip } from '../workspace/file-io';
 })
 export class TopBar {
   protected readonly store = inject(EditorStore);
+  protected readonly tour = inject(TourService);
+
+  /** Copy a summary that is safe to share: counts and timings, never names or values. */
+  protected async copyReport(): Promise<void> {
+    const eff = this.store.eff();
+    if (!eff) return;
+    const text = buildAnalysisReport({ eff, diagnostics: this.store.diagnostics(), fileCount: this.store.files().length, appVersion: BUILD_INFO.commit });
+    let ok: boolean;
+    try {
+      await navigator.clipboard.writeText(text);
+      ok = true;
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        ok = document.execCommand('copy');
+      } catch {
+        ok = false;
+      }
+      ta.remove();
+    }
+    this.store.toast(ok ? { kind: 'info', title: 'Analysis report copied', lines: ['It lists counts and timings only: no file names, identifiers, claim names or values.'] } : { kind: 'error', title: 'Could not copy the report', lines: ['Your browser blocked access to the clipboard.'] });
+  }
 
   protected layerCount(): number {
     return this.store.activeChain()?.docs.length ?? 0;

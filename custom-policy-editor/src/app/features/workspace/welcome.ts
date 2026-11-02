@@ -35,6 +35,7 @@ import { listSamples, loadSample, readPolicyFiles, SamplePack } from './file-io'
           <p class="muted tiny">{{ attribution() }}</p>
         </div>
       </div>
+      <p class="help-link"><a href="#/help">How to use this site</a>, <a href="#/help/privacy">privacy</a> and <a href="#/help/limitations">limitations</a></p>
       <div class="features">
         <div><app-icon name="skip" /><strong>Preconditions in plain words</strong><span>“Skipped if objectId exists”, “Runs only when MfaPreference = Phone”, plus a check of every case.</span></div>
         <div><app-icon name="bag" /><strong>Claims bag at every step</strong><span>Present, maybe, or absent and on which paths through the journey.</span></div>
@@ -56,6 +57,7 @@ import { listSamples, loadSample, readPolicyFiles, SamplePack } from './file-io'
     .drop { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
     .sample { width: 100%; border: 1px solid var(--border); background: var(--surface); margin-top: 6px; text-align: left; font: inherit; }
     .sample:disabled { opacity: 0.6; }
+    .help-link { text-align: center; margin: var(--space-lg) 0 0; }
     .tiny { font-size: var(--text-xs); margin-top: 10px; }
     .features { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 28px; }
     .features div { display: flex; flex-direction: column; gap: 4px; color: var(--text-2); font-size: var(--text-sm); }
