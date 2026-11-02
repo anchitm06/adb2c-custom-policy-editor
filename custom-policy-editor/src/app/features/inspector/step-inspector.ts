@@ -9,10 +9,11 @@ import { ClaimsBag } from '../claims-bag/claims-bag';
 import { PreconditionEditor } from '../preconditions/precondition-editor';
 import { ElementXml } from '../xml-editor/element-xml';
 import { SelectValue } from '../../shared/select-value';
+import { AlertItem } from '../../shared/alert-item';
 
 @Component({
   selector: 'app-step-inspector',
-  imports: [SelectValue, Icon, PreconditionEditor, ElementXml, ClaimsBag],
+  imports: [AlertItem, SelectValue, Icon, PreconditionEditor, ElementXml, ClaimsBag],
   template: `
     @if (step(); as st) {
       <div class="head">
@@ -38,11 +39,7 @@ import { SelectValue } from '../../shared/select-value';
           @case ('step') {
             <p class="muted small">{{ info().description }}</p>
             @for (d of problems(); track d.key) {
-              <div class="banner {{ d.severity === 'info' ? '' : d.severity }} small"><app-icon [name]="d.severity" [size]="14" /> <span class="grow">{{ d.message }}</span>
-                @if (d.fix) {
-                  <button class="btn sm" (click)="store.applyFix(d.fix)">{{ d.fix.label }}</button>
-                }
-              </div>
+              <app-alert-item [severity]="d.severity" [message]="d.message" [code]="d.code" [quickFix]="d.fix" />
             }
             <div class="field">
               <label for="st-type">Step type</label>

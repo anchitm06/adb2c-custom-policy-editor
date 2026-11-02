@@ -7,10 +7,11 @@ import { ClaimPicker } from '../../shared/claim-picker';
 import { Icon } from '../../shared/icon';
 import { ElementXml } from '../xml-editor/element-xml';
 import { SelectValue } from '../../shared/select-value';
+import { AlertItem } from '../../shared/alert-item';
 
 @Component({
   selector: 'app-transformation-editor',
-  imports: [SelectValue, Icon, ClaimPicker, ElementXml],
+  imports: [AlertItem, SelectValue, Icon, ClaimPicker, ElementXml],
   template: `
     @if (ct(); as c) {
       <header class="ed-head">
@@ -22,7 +23,7 @@ import { SelectValue } from '../../shared/select-value';
       </header>
       <div class="ed-body">
         @for (d of problems(); track d.key) {
-          <div class="banner {{ d.severity === 'info' ? '' : d.severity }} small"><app-icon [name]="d.severity" [size]="14" /> {{ d.message }}</div>
+          <app-alert-item [severity]="d.severity" [message]="d.message" [code]="d.code" [quickFix]="d.fix" />
         }
         <section class="card sec">
           <div class="grid2">

@@ -2,10 +2,11 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { Diagnostic, Severity } from '../../core/validate/validate';
 import { EditorStore } from '../../state/editor.store';
 import { Icon } from '../../shared/icon';
+import { AlertItem } from '../../shared/alert-item';
 
 @Component({
   selector: 'app-problems-panel',
-  imports: [Icon],
+  imports: [AlertItem, Icon],
   template: `
     <div class="bar">
       @for (s of sevs; track s) {
@@ -17,11 +18,7 @@ import { Icon } from '../../shared/icon';
     <div class="scroll">
       @for (d of list(); track d.key) {
         <div class="p" role="button" tabindex="0" (click)="store.goTo(d)" (keydown.enter)="store.goTo(d)">
-          <app-icon [name]="d.severity" [size]="14" class="{{ d.severity }}" />
-          <span class="msg">{{ d.message }}</span>
-          @if (d.fix) {
-            <button class="btn sm" (click)="fix(d, $event)"><app-icon name="wand" [size]="13" /> {{ d.fix.label }}</button>
-          }
+          <app-alert-item class="grow" [severity]="d.severity" [message]="d.message" [code]="d.code" [quickFix]="d.fix" />
           <span class="loc muted small">{{ loc(d) }}</span>
         </div>
       } @empty {
@@ -34,7 +31,7 @@ import { Icon } from '../../shared/icon';
     .bar { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-bottom: 1px solid var(--border); }
     .bar input { width: 180px; height: 24px; }
     .scroll { overflow: auto; flex: 1; }
-    .p { display: flex; align-items: center; gap: 8px; padding: 4px 12px; cursor: pointer; border-bottom: 1px solid var(--border); }
+    .p { display: flex; align-items: flex-start; gap: 8px; padding: 2px 12px; cursor: pointer; border-bottom: 1px solid var(--border); }
     .p:hover { background: var(--surface-2); }
     .msg { flex: 1; min-width: 0; }
     .loc { white-space: nowrap; }
@@ -69,8 +66,4 @@ export class ProblemsPanel {
     return `${this.store.fileName(d.ref.fileId)}:${d.ref.line}`;
   }
 
-  protected fix(d: Diagnostic, e: Event): void {
-    e.stopPropagation();
-    if (d.fix) this.store.applyFix(d.fix);
-  }
 }

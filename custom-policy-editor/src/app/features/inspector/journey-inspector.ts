@@ -5,10 +5,11 @@ import { EditorStore } from '../../state/editor.store';
 import { Icon } from '../../shared/icon';
 import { ElementXml } from '../xml-editor/element-xml';
 import { SelectValue } from '../../shared/select-value';
+import { AlertItem } from '../../shared/alert-item';
 
 @Component({
   selector: 'app-journey-inspector',
-  imports: [SelectValue, Icon, ElementXml],
+  imports: [AlertItem, SelectValue, Icon, ElementXml],
   template: `
     @if (journey(); as j) {
       <div class="head">
@@ -58,7 +59,7 @@ import { SelectValue } from '../../shared/select-value';
         @if (problems().length) {
           <h4>Problems</h4>
           @for (d of problems(); track d.key) {
-            <div class="list-item small" role="button" tabindex="0" (click)="store.goTo(d)" (keydown.enter)="store.goTo(d)"><app-icon [name]="d.severity" [size]="13" /> <span class="grow">{{ d.message }}</span></div>
+            <app-alert-item [severity]="d.severity" [message]="d.message" [code]="d.code" [quickFix]="d.fix" />
           }
         }
         <h4>XML</h4>

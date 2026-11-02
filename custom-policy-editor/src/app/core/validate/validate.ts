@@ -271,6 +271,20 @@ export function validateChain(eff: EffectivePolicy, analyses: JourneyAnalysis[] 
   if (chain.leaf.relyingParty && rp) {
     if (!rp.defaultUserJourney) s.add({ severity: 'error', code: 'rp.journey', message: 'RelyingParty has no DefaultUserJourney.', ref: rp.ref, target: { kind: 'relyingParty', id: chain.leaf.fileId } });
     if (!rp.technicalProfile) s.add({ severity: 'error', code: 'rp.tp', message: 'RelyingParty has no TechnicalProfile.', ref: rp.ref, target: { kind: 'relyingParty', id: chain.leaf.fileId } });
+    const def = rp.defaultUserJourney ? eff.userJourneys.get(idKey(rp.defaultUserJourney.referenceId))?.value : undefined;
+    if (def && rp.technicalProfile) {
+      const produced = claimsProducedBy(eff, def);
+      for (const oc of rp.technicalProfile.outputClaims) {
+        if (oc.defaultValue !== undefined || produced.has(idKey(oc.claimTypeReferenceId))) continue;
+        s.add({
+          severity: 'error',
+          code: 'rp.outputNotProduced',
+          message: `Token claim "${oc.claimTypeReferenceId}" is not an output claim of any step in ${def.id}, so Azure AD B2C cannot read it. Produce it in a step or give it a DefaultValue.`,
+          ref: oc.ref,
+          target: { kind: 'relyingParty', id: chain.leaf.fileId },
+        });
+      }
+    }
   }
 
   // Data flow
@@ -330,7 +344,11 @@ function validateDocRefs(s: Sink, l: Lookup, d: PolicyDoc, claim: (id: string | 
   if (d.relyingParty?.technicalProfile) tps.push(d.relyingParty.technicalProfile);
   for (const tp of tps) {
     const t = { kind: 'technicalProfile' as const, id: tp.id };
-    for (const c of [...tp.inputClaims, ...tp.outputClaims, ...tp.persistedClaims]) claim(c.claimTypeReferenceId, c.ref);
+    for (const c of [...tp.inputClaims, ...tp.outputClaims, ...tp.persistedClaims]) {
+      claim(c.claimTypeReferenceId, c.ref);
+      const problem = defaultValueProblem(eff.claimType(c.claimTypeReferenceId)?.dataType, c.defaultValue);
+      if (problem) s.add({ severity: 'error', code: 'claim.defaultValue.type', message: `DefaultValue "${c.defaultValue}" of ${c.claimTypeReferenceId} ${problem}.`, ref: c.ref, target: t });
+    }
     for (const c of tp.displayClaims) {
       if (c.claimTypeReferenceId) claim(c.claimTypeReferenceId, c.ref);
       if (c.displayControlReferenceId) checkRef(s, l, eff.displayControls, c.displayControlReferenceId, 'Display control', c.ref, t);
@@ -365,6 +383,55 @@ function validateDocRefs(s: Sink, l: Lookup, d: PolicyDoc, claim: (id: string | 
     if (rp.defaultUserJourney) checkRef(s, l, eff.userJourneys, rp.defaultUserJourney.referenceId, 'User journey', rp.defaultUserJourney.ref, t);
     for (const ep of rp.endpoints) checkRef(s, l, eff.userJourneys, ep.userJourneyReferenceId, 'User journey', ep.ref, t);
   }
+}
+
+/** Why a DefaultValue cannot be parsed as the claim data type, or null when it is fine (or cannot be judged). */
+export function defaultValueProblem(dataType: string | undefined, value: string | undefined): string | null {
+  if (!dataType || value === undefined || value.includes('{')) return null;
+  const v = value.trim();
+  switch (dataType.toLowerCase()) {
+    case 'int':
+      return /^-?\d+$/.test(v) && Math.abs(Number(v)) <= 2147483648 ? null : 'is not a whole number that fits an int';
+    case 'long':
+      return /^-?\d+$/.test(v) ? null : 'is not a whole number';
+    case 'boolean':
+      return /^(true|false)$/i.test(v) ? null : 'is not true or false';
+    case 'date':
+    case 'datetime':
+      return Number.isNaN(Date.parse(v)) ? 'is not a valid date' : null;
+    default:
+      return null;
+  }
+}
+
+/** Claims that some step of the journey (or a sub journey it calls) can put into the claims bag. */
+function claimsProducedBy(eff: EffectivePolicy, journey: UserJourneyDef, seen = new Set<string>()): Set<string> {
+  const out = new Set<string>();
+  if (seen.has(idKey(journey.id))) return out;
+  seen.add(idKey(journey.id));
+  const addCt = (ref: string) => {
+    for (const c of eff.claimsTransformations.get(idKey(ref))?.value.outputClaims ?? []) out.add(idKey(c.claimTypeReferenceId));
+  };
+  const addTp = (id: string, depth = 0) => {
+    const tp = eff.tp(id);
+    if (!tp || depth > 3) return;
+    for (const c of tp.outputClaims) out.add(idKey(c.claimTypeReferenceId));
+    for (const t of [...tp.inputClaimsTransformations, ...tp.outputClaimsTransformations]) addCt(t.referenceId);
+    for (const d of tp.displayClaims) {
+      const dc = d.displayControlReferenceId ? eff.displayControls.get(idKey(d.displayControlReferenceId))?.value : undefined;
+      for (const c of dc?.outputClaims ?? []) out.add(idKey(c.claimTypeReferenceId));
+    }
+    for (const v of tp.validationTechnicalProfiles) addTp(v.referenceId, depth + 1);
+  };
+  for (const st of journey.steps) {
+    for (const x of st.claimsExchanges) addTp(x.technicalProfileReferenceId);
+    if (st.type === 'GetClaims') for (const c of eff.relyingParty?.technicalProfile?.inputClaims ?? []) out.add(idKey(c.claimTypeReferenceId));
+    if (st.type === 'InvokeSubJourney') {
+      const sub = eff.subJourneys.get(idKey(st.journeyCandidates[0]?.subJourneyReferenceId))?.value;
+      if (sub) for (const k of claimsProducedBy(eff, sub, seen)) out.add(k);
+    }
+  }
+  return out;
 }
 
 function validateJourney(s: Sink, l: Lookup, j: UserJourneyDef): void {
@@ -412,9 +479,14 @@ function validateJourney(s: Sink, l: Lookup, j: UserJourneyDef): void {
       exchangeIds.set(k, st.orderText);
     }
     switch (st.type) {
-      case 'ClaimsExchange':
+      case 'ClaimsExchange': {
         if (!st.claimsExchanges.length) s.add({ severity: 'error', code: 'step.exchanges', message: `Step ${st.orderText} is a ClaimsExchange step without any ClaimsExchange.`, ref: st.ref, target: t });
+        const prev = steps[i - 1];
+        const afterSelection = !!prev && (prev.type === 'CombinedSignInAndSignUp' || prev.type === 'ClaimsProviderSelection');
+        if (st.claimsExchanges.length > 1 && !afterSelection)
+          s.add({ severity: 'error', code: 'step.exchanges.noSelection', message: `Step ${st.orderText} has ${st.claimsExchanges.length} claims exchanges but is not preceded by a claims provider selection, so Azure AD B2C cannot tell which one to run.`, ref: st.ref, target: t });
         break;
+      }
       case 'CombinedSignInAndSignUp':
       case 'ClaimsProviderSelection': {
         if (!st.contentDefinitionReferenceId)
@@ -422,6 +494,8 @@ function validateJourney(s: Sink, l: Lookup, j: UserJourneyDef): void {
         if (!st.claimsProviderSelections.length)
           s.add({ severity: 'warning', code: 'step.selections', message: `Step ${st.orderText} has no ClaimsProviderSelection.`, ref: st.ref, target: t });
         const next = steps[i + 1];
+        if (next && next.type !== 'ClaimsExchange' && st.claimsProviderSelections.some((x) => x.targetClaimsExchangeId))
+          s.add({ severity: 'error', code: 'step.selection.nextType', message: `Step ${next.orderText} follows a claims provider selection and must be a ClaimsExchange step (it is ${next.type}).`, ref: next.ref, target: t });
         for (const sel of st.claimsProviderSelections) {
           if (!!sel.targetClaimsExchangeId === !!sel.validationClaimsExchangeId)
             s.add({ severity: 'error', code: 'step.selection', message: 'A ClaimsProviderSelection needs exactly one of TargetClaimsExchangeId or ValidationClaimsExchangeId.', ref: sel.ref, target: t });

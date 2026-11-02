@@ -8,6 +8,7 @@ import { EditorStore } from '../../state/editor.store';
 import { ClaimPicker } from '../../shared/claim-picker';
 import { Icon } from '../../shared/icon';
 import { SelectValue } from '../../shared/select-value';
+import { AlertItem } from '../../shared/alert-item';
 
 const SKIP_OPS: { op: AtomOp; label: string }[] = [
   { op: 'exists', label: 'exists' },
@@ -29,7 +30,7 @@ const RUN_OPS: { op: AtomOp; label: string }[] = [
  */
 @Component({
   selector: 'app-precondition-editor',
-  imports: [SelectValue, ClaimPicker, Icon],
+  imports: [AlertItem, SelectValue, ClaimPicker, Icon],
   template: `
     <div class="modes">
       <div class="seg" role="tablist">
@@ -79,7 +80,7 @@ const RUN_OPS: { op: AtomOp; label: string }[] = [
           <div class="note small">{{ n }}</div>
         }
         @for (l of lintsFor(i); track l.message) {
-          <div class="lint {{ l.severity }} small"><app-icon [name]="l.severity" [size]="13" /> {{ l.message }}</div>
+          <app-alert-item [severity]="l.severity" [message]="l.message" [code]="l.code" />
         }
         @if (!last) {
           <div class="joiner">or</div>
@@ -170,7 +171,7 @@ const RUN_OPS: { op: AtomOp; label: string }[] = [
         <p class="muted small">Pick a scenario in the journey toolbar to see exactly what happens in one case.</p>
       }
       @for (l of generalLints(); track l.message) {
-        <div class="lint {{ l.severity }} small"><app-icon [name]="l.severity" [size]="13" /> {{ l.message }}</div>
+        <app-alert-item [severity]="l.severity" [message]="l.message" [code]="l.code" />
       }
       @if (ex().truth.rows.length > 1) {
         <button class="btn ghost sm" (click)="showTruth.set(!showTruth())"><app-icon [name]="showTruth() ? 'chevronDown' : 'chevronRight'" [size]="14" /> Every combination ({{ ex().truth.rows.length }})</button>

@@ -21,6 +21,7 @@ import { tpKindInfo } from '../../shared/present';
 import { PreconditionEditor } from '../preconditions/precondition-editor';
 import { ElementXml } from '../xml-editor/element-xml';
 import { SelectValue } from '../../shared/select-value';
+import { AlertItem } from '../../shared/alert-item';
 
 interface Row<T> {
   item: T;
@@ -32,7 +33,7 @@ const KIND_ORDER: TpKind[] = ['selfAsserted', 'entraId', 'rest', 'claimsTransfor
 
 @Component({
   selector: 'app-technical-profile-editor',
-  imports: [SelectValue, Icon, ClaimPicker, PreconditionEditor, ElementXml, NgTemplateOutlet],
+  imports: [AlertItem, SelectValue, Icon, ClaimPicker, PreconditionEditor, ElementXml, NgTemplateOutlet],
   templateUrl: './technical-profile-editor.html',
   styleUrl: '../editors.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

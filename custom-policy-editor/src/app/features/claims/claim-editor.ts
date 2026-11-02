@@ -8,6 +8,7 @@ import { Icon } from '../../shared/icon';
 import { AVAILABILITY_CLASS, AVAILABILITY_LABEL } from '../../shared/present';
 import { ElementXml } from '../xml-editor/element-xml';
 import { SelectValue } from '../../shared/select-value';
+import { AlertItem } from '../../shared/alert-item';
 
 interface Usage {
   kind: 'set' | 'read' | 'check' | 'token' | 'transform' | 'persist';
@@ -17,7 +18,7 @@ interface Usage {
 
 @Component({
   selector: 'app-claim-editor',
-  imports: [SelectValue, Icon, ElementXml],
+  imports: [AlertItem, SelectValue, Icon, ElementXml],
   template: `
     @if (ct(); as c) {
       <header class="ed-head">
@@ -34,7 +35,7 @@ interface Usage {
       </header>
       <div class="ed-body">
         @for (d of problems(); track d.key) {
-          <div class="banner {{ d.severity }} small"><app-icon [name]="d.severity" [size]="14" /> {{ d.message }}</div>
+          <app-alert-item [severity]="d.severity" [message]="d.message" [code]="d.code" [quickFix]="d.fix" />
         }
         <section class="card sec">
           <h3>Definition</h3>

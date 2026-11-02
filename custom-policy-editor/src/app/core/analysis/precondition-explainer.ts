@@ -28,6 +28,8 @@ export interface ExplainedPrecondition {
 }
 
 export interface Lint {
+  /** Key into the alert catalog (core/validate/diagnostic-catalog.ts). */
+  code: string;
   severity: 'error' | 'warning' | 'info';
   message: string;
   index?: number;
@@ -92,18 +94,18 @@ export function explainPreconditions(preconditions: readonly Precondition[], opt
   const never = rc.never;
 
   const lints: Lint[] = [];
-  items.forEach((it) => it.problems.forEach((m) => lints.push({ severity: 'error', message: m, index: it.index })));
+  items.forEach((it) => it.problems.forEach((m) => lints.push({ code: 'precondition', severity: 'error', message: m, index: it.index })));
 
   // Duplicate preconditions.
   const seen = new Map<string, number>();
   valid.forEach((a) => {
     const k = `${a.op}|${idKey(a.claim)}|${a.value ?? ''}`;
     const idx = atoms.indexOf(a);
-    if (seen.has(k)) lints.push({ severity: 'warning', message: `Same as precondition ${seen.get(k)! + 1}.`, index: idx });
+    if (seen.has(k)) lints.push({ code: 'pre.duplicate', severity: 'warning', message: `Same as precondition ${seen.get(k)! + 1}.`, index: idx });
     else seen.set(k, idx);
   });
 
-  if (never && valid.length) lints.push({ severity: 'warning', message: 'These preconditions skip the step in every possible case, so it never runs.' });
+  if (never && valid.length) lints.push({ code: 'pre.never', severity: 'warning', message: 'These preconditions skip the step in every possible case, so it never runs.' });
 
   // Claim schema checks.
   if (opts.eff) {
@@ -112,16 +114,16 @@ export function explainPreconditions(preconditions: readonly Precondition[], opt
       if (!a) continue;
       const ct = opts.eff.claimType(a.claim);
       if (!ct) {
-        lints.push({ severity: 'error', message: `Claim "${a.claim}" is not defined in any ClaimsSchema of this policy chain.`, index: it.index });
+        lints.push({ code: 'pre.claimUndefined', severity: 'error', message: `Claim "${a.claim}" is not defined in any ClaimsSchema of this policy chain.`, index: it.index });
         continue;
       }
       if (a.value !== undefined) {
         if (ct.dataType === 'boolean' && a.value !== 'True' && a.value !== 'False') {
-          lints.push({ severity: 'warning', message: `${a.claim} is a boolean claim. Compare to "True" or "False" (case-sensitive).`, index: it.index });
+          lints.push({ code: 'pre.boolean', severity: 'warning', message: `${a.claim} is a boolean claim. Compare to "True" or "False" (case-sensitive).`, index: it.index });
         }
         const en = ct.restriction?.enumeration ?? [];
         if (en.length && !en.some((e) => e.value === a.value)) {
-          lints.push({ severity: 'warning', message: `"${a.value}" is not one of the allowed values of ${a.claim} (${en.map((e) => e.value).join(', ')}).`, index: it.index });
+          lints.push({ code: 'pre.enumeration', severity: 'warning', message: `"${a.value}" is not one of the allowed values of ${a.claim} (${en.map((e) => e.value).join(', ')}).`, index: it.index });
         }
       }
     }
@@ -131,7 +133,7 @@ export function explainPreconditions(preconditions: readonly Precondition[], opt
   if (summary) {
     const reached = summary.arrivals;
     if (reached && summary.runs === 'never' && valid.length) {
-      lints.push({ severity: 'info', message: 'In every analysed scenario one of these preconditions skips the step.' });
+      lints.push({ code: 'pre.coversAll', severity: 'info', message: 'In every analysed scenario one of these preconditions skips the step.' });
     }
     for (const it of items) {
       const a = it.atom;
@@ -139,16 +141,17 @@ export function explainPreconditions(preconditions: readonly Precondition[], opt
       const av = summary.before.get(idKey(a.claim));
       const status = av?.availability ?? 'absent';
       if ((a.op === 'exists' || a.op === 'eq' || a.op === 'neq') && status === 'absent' && reached) {
-        lints.push({ severity: 'warning', message: `${a.claim} is never in the claims bag when this step is reached, so this precondition is never satisfied.`, index: it.index });
+        lints.push({ code: 'pre.neverSatisfied', severity: 'warning', message: `${a.claim} is never in the claims bag when this step is reached, so this precondition is never satisfied.`, index: it.index });
       } else if (a.op === 'missing' && status === 'absent' && reached) {
-        lints.push({ severity: 'warning', message: `${a.claim} is never in the claims bag here, so this precondition always skips the step.`, index: it.index });
+        lints.push({ code: 'pre.alwaysSkips', severity: 'warning', message: `${a.claim} is never in the claims bag here, so this precondition always skips the step.`, index: it.index });
       } else if (a.op === 'exists' && status === 'definitely' && it.index === 0) {
-        lints.push({ severity: 'warning', message: `${a.claim} is always present when this step is reached, so the step is always skipped.`, index: it.index });
+        lints.push({ code: 'pre.alwaysPresent', severity: 'warning', message: `${a.claim} is always present when this step is reached, so the step is always skipped.`, index: it.index });
       }
       if (a.op === 'neq' && status !== 'definitely') {
         const guarded = valid.some((b) => atoms.indexOf(b) < it.index && b.op === 'missing' && idKey(b.claim) === idKey(a.claim));
         if (!guarded) {
           lints.push({
+            code: 'pre.maybeMissing',
             severity: 'warning',
             message: `${a.claim} may be missing here. ClaimEquals is ignored for a missing claim, so the step will run. Add "Skip if ${a.claim} is missing" before this check if it should be skipped.`,
             index: it.index,
@@ -158,7 +161,7 @@ export function explainPreconditions(preconditions: readonly Precondition[], opt
       if (reached > 1 && it.skipCount === 0 && summary.runs !== 'never') {
         const earlier = items.slice(0, it.index).some((x) => x.skipCount > 0);
         if (earlier || summary.ranCount === reached) {
-          lints.push({ severity: 'info', message: 'This precondition never decides the outcome in any analysed scenario.', index: it.index });
+          lints.push({ code: 'pre.neverDecides', severity: 'info', message: 'This precondition never decides the outcome in any analysed scenario.', index: it.index });
         }
       }
     }

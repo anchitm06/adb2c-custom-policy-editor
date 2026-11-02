@@ -35,7 +35,7 @@
     </div>
 
     @for (d of problems(); track d.key) {
-      <div class="banner {{ d.severity }} small"><app-icon [name]="d.severity" [size]="14" /> {{ d.message }}</div>
+      <app-alert-item [severity]="d.severity" [message]="d.message" [code]="d.code" [quickFix]="d.fix" />
     }
 
     <section class="card sec">
