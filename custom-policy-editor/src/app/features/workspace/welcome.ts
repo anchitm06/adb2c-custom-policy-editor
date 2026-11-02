@@ -11,7 +11,7 @@ import { listSamples, loadSample, readPolicyFiles, SamplePack } from './file-io'
       <div class="hero">
         <div class="logo"><app-icon name="journey" [size]="30" /></div>
         <h1>Azure AD B2C custom policy editor</h1>
-        <p class="lead">See every user journey as a flow. Know exactly when each step runs, which claims are in the claims bag at every step, and what each change does — before you upload.</p>
+        <p class="lead">See every user journey as a flow. Know exactly when each step runs, which claims are in the claims bag at every step, and what each change does, before you upload.</p>
       </div>
       <div class="actions">
         <div class="card drop">
@@ -37,7 +37,7 @@ import { listSamples, loadSample, readPolicyFiles, SamplePack } from './file-io'
       </div>
       <div class="features">
         <div><app-icon name="skip" /><strong>Preconditions in plain words</strong><span>“Skipped if objectId exists”, “Runs only when MfaPreference = Phone”, plus a check of every case.</span></div>
-        <div><app-icon name="bag" /><strong>Claims bag at every step</strong><span>Present, maybe, or absent — and on which paths through the journey.</span></div>
+        <div><app-icon name="bag" /><strong>Claims bag at every step</strong><span>Present, maybe, or absent and on which paths through the journey.</span></div>
         <div><app-icon name="check" /><strong>Validated as you edit</strong><span>References, ordering, selections and data flow are re-checked after every change.</span></div>
         <div><app-icon name="shield" /><strong>Stays in your browser</strong><span>Nothing is uploaded. Work is saved locally in this browser only.</span></div>
       </div>
@@ -49,17 +49,17 @@ import { listSamples, loadSample, readPolicyFiles, SamplePack } from './file-io'
     .wrap.drag { outline: 3px dashed var(--accent); outline-offset: -12px; }
     .hero { text-align: center; margin-bottom: 32px; }
     .logo { width: 56px; height: 56px; border-radius: 14px; background: var(--accent); color: var(--accent-text); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 14px; }
-    h1 { font-size: 26px; margin-bottom: 8px; }
-    .lead { font-size: 15px; color: var(--text-2); max-width: 640px; margin: 0 auto; }
+    h1 { font-size: var(--text-2xl); margin-bottom: 8px; }
+    .lead { font-size: var(--text-md); color: var(--text-2); max-width: 640px; margin: 0 auto; }
     .actions { display: grid; grid-template-columns: 1fr 1.3fr; gap: 16px; }
     .card { padding: 18px; }
     .drop { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
     .sample { width: 100%; border: 1px solid var(--border); background: var(--surface); margin-top: 6px; text-align: left; font: inherit; }
     .sample:disabled { opacity: 0.6; }
-    .tiny { font-size: 11px; margin-top: 10px; }
+    .tiny { font-size: var(--text-xs); margin-top: 10px; }
     .features { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 28px; }
-    .features div { display: flex; flex-direction: column; gap: 4px; color: var(--text-2); font-size: 12.5px; }
-    .features strong { color: var(--text); font-size: 13px; }
+    .features div { display: flex; flex-direction: column; gap: 4px; color: var(--text-2); font-size: var(--text-sm); }
+    .features strong { color: var(--text); font-size: var(--text-sm); }
     .features app-icon { color: var(--accent); }
     @media (max-width: 760px) { .actions, .features { grid-template-columns: 1fr; } }
   `,

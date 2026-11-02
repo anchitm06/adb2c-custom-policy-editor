@@ -9,7 +9,7 @@ import type { CmHandle, LineDiagnostic } from './cm-setup';
       <div class="loading muted small">Loading editor…</div>
     }`,
   styles: `
-    :host { display: block; position: relative; min-height: 120px; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+    :host { display: block; position: relative; min-height: 120px; border: 1px solid var(--border); border-radius: var(--radius-input); overflow: hidden; }
     :host(.fill) { height: 100%; border: 0; border-radius: 0; }
     .host { height: 100%; }
     .loading { position: absolute; top: 8px; left: 12px; }

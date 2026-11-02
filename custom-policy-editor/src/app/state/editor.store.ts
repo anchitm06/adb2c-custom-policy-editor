@@ -415,8 +415,10 @@ export class EditorStore {
     setTimeout(() => {
       if (this.changedSteps() === impact.changedSteps) this.changedSteps.set(new Set());
     }, 4000);
+    // Only report when something changed: a quiet edit stays quiet.
+    if (!impact.lines.length) return;
     if (quiet && !impact.newDiagnostics.some((d) => d.severity === 'error')) return;
-    this.toast({ kind: 'impact', title: label, lines: impact.lines.length ? impact.lines : ['No change to validation or claims flow'], impact });
+    this.toast({ kind: 'impact', title: label, lines: impact.lines, impact });
   }
 
   toast(t: Omit<Toast, 'id'>): void {
@@ -603,9 +605,9 @@ export class EditorStore {
     const c = this.activeChain();
     if (c && c.docs.some((d) => d.fileId === fileId)) return layerLabel(c, fileId);
     const doc = this.fileById().get(fileId)?.doc;
-    if (!doc) return '—';
+    if (!doc) return '';
     const other = this.chains().find((ch) => ch.docs.some((d) => d.fileId === fileId));
-    return other ? layerLabel(other, fileId) : '—';
+    return other ? layerLabel(other, fileId) : '';
   }
 
   fileName(fileId: string): string {

@@ -57,15 +57,15 @@ import { Icon } from '../../shared/icon';
   styles: `
     :host { display: inline-flex; align-items: center; gap: 4px; min-width: 0; }
     .btn { max-width: 340px; }
-    .pop { position: fixed; z-index: 1000; width: 440px; max-width: calc(100vw - 24px); max-height: min(560px, calc(100vh - 120px)); display: flex; flex-direction: column; gap: 8px; padding: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow-lg); }
+    .pop { position: fixed; z-index: 1000; width: 440px; max-width: calc(100vw - 24px); max-height: min(560px, calc(100vh - 120px)); display: flex; flex-direction: column; gap: 8px; padding: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); box-shadow: var(--shadow-lg); }
     .scroll { overflow: auto; min-height: 0; }
-    h3 { margin: 8px 0 4px; font-size: 13px; }
-    .row-btn { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 8px; border: 0; border-radius: 6px; background: none; font: inherit; color: var(--text); text-align: left; cursor: pointer; }
+    h3 { margin: 8px 0 4px; font-size: var(--text-sm); }
+    .row-btn { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 8px; border: 0; border-radius: var(--radius-input); background: none; font: inherit; color: var(--text); text-align: left; cursor: pointer; }
     .row-btn:hover, .row-btn.on { background: var(--accent-2); }
     .decision { border: 0; border-top: 1px solid var(--border); padding: 8px 0 4px; margin: 0; min-width: 0; }
-    legend { padding: 0; font-weight: 600; font-size: 12.5px; }
+    legend { padding: 0; font-weight: 600; font-size: var(--text-sm); }
     .opts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
-    .opt { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 6px; padding: 3px 9px; font: inherit; font-size: 12.5px; cursor: pointer; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .opt { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: var(--radius-input); padding: 3px 9px; font: inherit; font-size: var(--text-sm); cursor: pointer; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .opt:hover { border-color: var(--border-strong); }
     .opt.on { background: var(--accent-2); border-color: var(--accent); color: var(--accent); font-weight: 600; }
   `,

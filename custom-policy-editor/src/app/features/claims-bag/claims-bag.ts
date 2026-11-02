@@ -78,7 +78,7 @@ interface Row {
     .bar input[type='search'] { width: 160px; height: 24px; }
     .scroll { overflow: auto; flex: 1; }
     tr.changed td { background: color-mix(in srgb, var(--ok-bg) 60%, transparent); }
-    .use { margin-left: 4px; height: 16px; font-size: 10px; }
+    .use { margin-left: 4px; height: 16px; font-size: var(--text-xs); }
     .truncate-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -186,5 +186,5 @@ function missingNote(a: ClaimAvailability, uncertain: string[]): string {
   const parts: string[] = [];
   if (a.missingIn.length) parts.push(`missing in: ${a.missingIn.join('; ')}`);
   if (uncertain.length) parts.push(`only possibly there in: ${uncertain.join('; ')}`);
-  return parts.join(' · ');
+  return parts.join(', ');
 }

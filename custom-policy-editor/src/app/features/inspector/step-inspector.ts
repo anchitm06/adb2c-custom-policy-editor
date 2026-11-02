@@ -20,7 +20,7 @@ import { AlertItem } from '../../shared/alert-item';
         <span class="order">{{ st.orderText }}</span>
         <div class="grow">
           <div class="title">{{ info().label }}</div>
-          <div class="muted small">{{ journeyId() }} · <span class="layer">{{ store.layerOf(st.ref.fileId) }}</span> {{ store.fileName(st.ref.fileId) }}</div>
+          <div class="muted small">{{ journeyId() }}, <span class="layer">{{ store.layerOf(st.ref.fileId) }}</span> {{ store.fileName(st.ref.fileId) }}</div>
         </div>
         <span class="chip {{ runsClass() }}">{{ runsText() }}</span>
       </div>
@@ -121,7 +121,7 @@ import { AlertItem } from '../../shared/alert-item';
                     <input class="grow" type="text" [value]="x.tpId" list="tp-list" aria-label="Technical profile" (change)="setSelAttr(x.ref, 'TechnicalProfileReferenceId', $any($event.target).value)" />
                     <button class="btn sm" [disabled]="x.missing" (click)="openTp(x.tpId)">Open</button>
                   </div>
-                  <div class="small muted" style="margin: 4px 0">{{ x.kind }}{{ x.include ? ' · includes ' + x.include : '' }}</div>
+                  <div class="small muted" style="margin: 4px 0">{{ x.kind }}{{ x.include ? ', includes ' + x.include : '' }}</div>
                   @if (x.inputs.length) {
                     <div class="claims"><span class="lbl">Inputs</span>
                       @for (c of x.inputs; track c.id) {
@@ -217,7 +217,7 @@ export class StepInspector {
   protected readonly allTps = computed(() =>
     [...(this.store.eff()?.technicalProfiles.values() ?? [])].map((t) => {
       const f = this.store.eff()!.tp(t.id);
-      return { id: t.id, label: `${f?.displayName ?? ''} — ${tpKindInfo(f?.kind).label}` };
+      return { id: t.id, label: `${f?.displayName ?? ''}, ${tpKindInfo(f?.kind).label}` };
     }),
   );
   protected readonly issuers = computed(() => {

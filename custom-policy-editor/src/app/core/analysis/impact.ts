@@ -34,7 +34,7 @@ function ranges(nums: number[]): string {
   for (let i = 0; i < s.length; i++) {
     let j = i;
     while (j + 1 < s.length && s[j + 1] === s[j] + 1) j++;
-    out.push(j > i ? `${s[i]}–${s[j]}` : `${s[i]}`);
+    out.push(j > i ? `${s[i]} to ${s[j]}` : `${s[i]}`);
     i = j;
   }
   return out.join(', ');

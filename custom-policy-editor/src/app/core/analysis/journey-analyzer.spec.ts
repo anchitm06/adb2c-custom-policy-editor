@@ -25,8 +25,8 @@ describe('journey analyzer: SocialAndLocalAccounts sign up or sign in', () => {
     expect(a.approximate).toBe(false);
     expect(a.namedPaths!.map((p) => p.label).sort()).toEqual([
       'Email signup',
-      'Facebook · account found (objectId)',
-      'Facebook · no account found (objectId missing)',
+      'Facebook, account found (objectId)',
+      'Facebook, no account found (objectId missing)',
       'Local Account Signin',
     ]);
     expect(a.namedPaths!.every((p) => p.outcome === 'token')).toBe(true);
@@ -37,7 +37,7 @@ describe('journey analyzer: SocialAndLocalAccounts sign up or sign in', () => {
 
   it('knows when each step runs overall', () => {
     expect([1, 2, 3, 4, 5, 6, 7].map((n) => step(n).runs)).toEqual(['always', 'sometimes', 'sometimes', 'sometimes', 'sometimes', 'never', 'always']);
-    expect(step(4).ranWhen).toEqual(['Facebook · no account found (objectId missing)']);
+    expect(step(4).ranWhen).toEqual(['Facebook, no account found (objectId missing)']);
     expect(step(3).skipCount).toBeGreaterThan(0);
   });
 
@@ -45,10 +45,10 @@ describe('journey analyzer: SocialAndLocalAccounts sign up or sign in', () => {
     const runs = (label: string) => [1, 2, 3, 4, 5, 6, 7].map((n) => step(n, on(label)).runs);
     expect(runs('Local Account Signin')).toEqual(['always', 'never', 'never', 'never', 'always', 'never', 'always']);
     expect(runs('Email signup')).toEqual(['always', 'always', 'never', 'never', 'always', 'never', 'always']);
-    expect(runs('Facebook · account found (objectId)')).toEqual(['always', 'always', 'always', 'never', 'never', 'never', 'always']);
-    expect(runs('Facebook · no account found (objectId missing)')).toEqual(['always', 'always', 'always', 'always', 'never', 'never', 'always']);
+    expect(runs('Facebook, account found (objectId)')).toEqual(['always', 'always', 'always', 'never', 'never', 'never', 'always']);
+    expect(runs('Facebook, no account found (objectId missing)')).toEqual(['always', 'always', 'always', 'always', 'never', 'never', 'always']);
     // Skipped by the first precondition (objectId exists) on the Facebook path where the account was found.
-    expect(step(4, on('Facebook · account found (objectId)')).skippedBy.get(0)?.count).toBe(1);
+    expect(step(4, on('Facebook, account found (objectId)')).skippedBy.get(0)?.count).toBe(1);
   });
 
   it('tracks the claims bag', () => {

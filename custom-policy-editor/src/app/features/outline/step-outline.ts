@@ -40,13 +40,13 @@ import { stepTypeInfo, tpKindInfo } from '../../shared/present';
     .search { display: flex; align-items: center; gap: 6px; padding: 4px 10px 8px; color: var(--text-3); }
     .search input { flex: 1; height: 26px; }
     .list { overflow: auto; flex: 1; padding: 0 6px 12px; }
-    .item { display: flex; align-items: center; gap: 7px; padding: 4px 6px; border-radius: 5px; cursor: pointer; min-width: 0; }
+    .item { display: flex; align-items: center; gap: 7px; padding: 4px 6px; border-radius: var(--radius-input); cursor: pointer; min-width: 0; }
     .item:hover { background: var(--surface-3); }
     .item.on { background: var(--accent-2); color: var(--accent); }
     .order { min-width: 22px; text-align: right; font-variant-numeric: tabular-nums; color: var(--text-3); }
     .sev.error { color: var(--error); }
     .sev.warning { color: var(--warning); }
-    .run { font-size: 12px; width: 14px; text-align: center; }
+    .run { font-size: var(--text-xs); width: 14px; text-align: center; }
     .run.always { color: var(--ok); }
     .run.sometimes { color: var(--maybe); }
     .run.never, .run.unreached { color: var(--absent); }

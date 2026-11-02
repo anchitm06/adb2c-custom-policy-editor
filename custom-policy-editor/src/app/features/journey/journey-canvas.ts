@@ -93,7 +93,7 @@ interface StepVM {
           <app-icon name="start" [size]="18" />
           <div>
             <div class="nt">Start</div>
-            <div class="muted small">{{ store.activeChain()?.leaf?.policyId }} · claims bag is empty</div>
+            <div class="muted small">{{ store.activeChain()?.leaf?.policyId }}, claims bag is empty</div>
           </div>
         </div>
 

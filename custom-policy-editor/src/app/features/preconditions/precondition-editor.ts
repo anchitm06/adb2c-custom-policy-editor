@@ -33,9 +33,9 @@ const RUN_OPS: { op: AtomOp; label: string }[] = [
   imports: [AlertItem, SelectValue, ClaimPicker, Icon],
   template: `
     <div class="modes">
-      <div class="seg" role="tablist">
-        <button role="tab" [attr.aria-selected]="mode() === 'skip'" [class.on]="mode() === 'skip'" (click)="mode.set('skip')">Skip when…</button>
-        <button role="tab" [attr.aria-selected]="mode() === 'run'" [class.on]="mode() === 'run'" [disabled]="!runForm()" [title]="runForm() ? '' : 'These preconditions can’t be written as a simple list of run conditions'" (click)="mode.set('run')">Run only when…</button>
+      <div class="seg" role="group" aria-label="Condition style">
+        <button [attr.aria-pressed]="mode() === 'skip'" (click)="mode.set('skip')">Skip when…</button>
+        <button [attr.aria-pressed]="mode() === 'run'" [disabled]="!runForm()" [title]="runForm() ? '' : 'These preconditions can’t be written as a simple list of run conditions'" (click)="mode.set('run')">Run only when…</button>
       </div>
       <span class="spacer"></span>
       <label class="small muted row"><input type="checkbox" [checked]="raw()" (change)="raw.set(!raw())" /> Show XML values</label>
@@ -74,7 +74,7 @@ const RUN_OPS: { op: AtomOp; label: string }[] = [
           </span>
         </div>
         @if (raw()) {
-          <div class="raw mono">Type="{{ row.source.type }}" ExecuteActionsIf="{{ row.source.executeActionsIf }}" · Value: {{ row.source.values.join(' | ') }}</div>
+          <div class="raw mono">Type="{{ row.source.type }}" ExecuteActionsIf="{{ row.source.executeActionsIf }}", Value: {{ row.source.values.join(' | ') }}</div>
         }
         @if (rowNote(i); as n) {
           <div class="note small">{{ n }}</div>
@@ -144,7 +144,7 @@ const RUN_OPS: { op: AtomOp; label: string }[] = [
           <div>
             <h4>Runs only when <em>all</em> hold</h4>
             @if (ex().never) {
-              <p class="err small">Never — the conditions cover every case.</p>
+              <p class="err small">Never: the conditions cover every case.</p>
             } @else {
               <ul>
                 @for (r of ex().runsOnlyWhen; track r) {
@@ -209,21 +209,17 @@ const RUN_OPS: { op: AtomOp; label: string }[] = [
   styles: `
     :host { display: block; }
     .modes { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-    .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
-    .seg button { border: 0; background: var(--surface); color: var(--text-2); padding: 4px 10px; font: inherit; font-size: 12px; cursor: pointer; }
-    .seg button.on { background: var(--accent-2); color: var(--accent); font-weight: 600; }
-    .seg button:disabled { opacity: 0.5; cursor: default; }
-    .cond { display: flex; align-items: center; gap: 6px; padding: 6px; border: 1px solid var(--border); border-left: 3px solid var(--skip); border-radius: 6px; background: var(--surface); flex-wrap: wrap; }
-    .cond.run { border-left-color: var(--ok); }
-    .cond.bad { border-left-color: var(--error); }
-    .num { width: 18px; height: 18px; border-radius: 50%; background: var(--surface-3); font-size: 11px; display: inline-flex; align-items: center; justify-content: center; font-weight: 600; flex: none; }
-    .lead { font-weight: 600; font-size: 12px; color: var(--text-2); white-space: nowrap; }
+    .cond { display: flex; align-items: center; gap: 6px; padding: 6px; border: 1px solid var(--border); border-radius: var(--radius-input); background: var(--surface); flex-wrap: wrap; }
+    .cond.run { border-color: var(--ok); }
+    .cond.bad { border-color: var(--error); }
+    .num { width: 18px; height: 18px; border-radius: 50%; background: var(--surface-3); font-size: var(--text-xs); display: inline-flex; align-items: center; justify-content: center; font-weight: 600; flex: none; }
+    .lead { font-weight: 600; font-size: var(--text-xs); color: var(--text-2); white-space: nowrap; }
     .claim { flex: 1 1 150px; }
     select { flex: 0 0 auto; }
     .val { flex: 1 1 90px; }
     .tools { display: inline-flex; margin-left: auto; }
-    .joiner { font-size: 11px; font-weight: 700; color: var(--text-3); text-transform: uppercase; margin: 2px 0 2px 14px; }
-    .raw { color: var(--text-3); font-size: 11px; margin: 2px 0 0 30px; }
+    .joiner { font-size: var(--text-xs); font-weight: 700; color: var(--text-3); margin: 2px 0 2px 14px; }
+    .raw { color: var(--text-3); font-size: var(--text-xs); margin: 2px 0 0 30px; }
     .note { color: var(--text-3); margin: 3px 0 0 30px; }
     .lint { display: flex; gap: 5px; align-items: flex-start; margin: 4px 0 0 30px; }
     .lint.error { color: var(--error); }
@@ -231,19 +227,19 @@ const RUN_OPS: { op: AtomOp; label: string }[] = [
     .lint.info { color: var(--info); }
     .explain { margin-top: 12px; padding: 10px 12px; background: var(--surface-2); }
     .explain .lint { margin-left: 0; }
-    .ex-head { display: flex; align-items: center; gap: 6px; color: var(--skip); margin-bottom: 6px; }
+    .ex-head { display: flex; align-items: center; gap: 6px; color: var(--text-2); margin-bottom: 6px; }
     .ex-head strong { color: var(--text); }
     .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     h4 { margin: 8px 0 4px; }
     h4 em { font-style: normal; color: var(--text); }
     ol, ul { margin: 0; padding-left: 18px; }
     li { margin: 2px 0; }
-    li .chip { margin-left: 4px; height: 17px; font-size: 10.5px; }
+    li .chip { margin-left: 4px; height: 17px; font-size: var(--text-xs); }
     .dim { color: var(--text-3); }
     .paths { display: flex; flex-direction: column; gap: 2px; }
-    .prow { display: flex; align-items: center; gap: 6px; padding: 2px 4px; border-radius: 4px; cursor: pointer; }
+    .prow { display: flex; align-items: center; gap: 6px; padding: 2px 4px; border-radius: var(--radius-part); cursor: pointer; }
     .prow:hover, .prow.sel { background: var(--accent-2); }
-    .prow .chip { flex: none; height: 18px; font-size: 10.5px; }
+    .prow .chip { flex: none; height: 18px; font-size: var(--text-xs); }
     .truth { margin-top: 6px; }
     .hint { margin-top: 6px; }
   `,

@@ -14,7 +14,7 @@
     </select>
     <nav class="chain" aria-label="Inheritance chain">
       @for (d of store.activeChain()?.docs ?? []; track d.fileId; let last = $last) {
-        <button class="crumb" [class.target]="d.fileId === store.targetFile()?.fileId" [title]="d.fileName + (d.fileId === store.targetFile()?.fileId ? ' — new elements and overrides are written here' : '')" (click)="store.xmlFileId.set(d.fileId); store.mainMode.set('xml')">
+        <button class="crumb" [class.target]="d.fileId === store.targetFile()?.fileId" [title]="d.fileName + (d.fileId === store.targetFile()?.fileId ? '. New elements and overrides are written here' : '')" (click)="store.xmlFileId.set(d.fileId); store.mainMode.set('xml')">
           {{ store.layerOf(d.fileId) }}
         </button>
         @if (!last) {

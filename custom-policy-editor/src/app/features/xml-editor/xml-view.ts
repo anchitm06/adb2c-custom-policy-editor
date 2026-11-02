@@ -14,7 +14,7 @@ import { XmlEditor } from './xml-editor';
     <div class="tabs">
       @for (f of store.parsed(); track f.id) {
         <button class="tab" [class.on]="f.id === fileId()" (click)="store.xmlFileId.set(f.id)" [title]="f.name">
-          <span class="layer">{{ store.layerOf(f.id) || '—' }}</span> {{ f.name }}
+          <span class="layer">{{ store.layerOf(f.id) || 'none' }}</span> {{ f.name }}
           @if (f.error) {
             <span class="dot error"></span>
           }
@@ -37,7 +37,7 @@ import { XmlEditor } from './xml-editor';
   styles: `
     :host { display: flex; flex-direction: column; height: 100%; min-height: 0; }
     .tabs { display: flex; align-items: center; gap: 2px; padding: 4px 8px 0; border-bottom: 1px solid var(--border); background: var(--surface-2); overflow-x: auto; }
-    .tab { border: 1px solid transparent; border-bottom: 0; background: none; font: inherit; font-size: 12.5px; padding: 6px 10px; border-radius: 6px 6px 0 0; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; color: var(--text-2); white-space: nowrap; }
+    .tab { border: 1px solid transparent; border-bottom: 0; background: none; font: inherit; font-size: var(--text-sm); padding: 6px 10px; border-radius: var(--radius-input) 6px 0 0; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; color: var(--text-2); white-space: nowrap; }
     .tab.on { background: var(--surface); border-color: var(--border); color: var(--text); font-weight: 600; margin-bottom: -1px; }
     .banner { margin: 8px; }
     app-xml-editor { flex: 1; min-height: 0; }

@@ -60,7 +60,7 @@ export class TechnicalProfileEditor {
     const chain = this.store.activeChain();
     if (!chain) return [];
     const files = new Set([...this.layerFiles(), this.store.targetFile()?.fileId].filter((x): x is string => !!x));
-    return chain.docs.filter((d) => files.has(d.fileId)).map((d) => ({ id: d.fileId, label: `${this.store.layerOf(d.fileId)} — ${d.fileName}${this.layerFiles().includes(d.fileId) ? '' : ' (new override)'}` }));
+    return chain.docs.filter((d) => files.has(d.fileId)).map((d) => ({ id: d.fileId, label: `${this.store.layerOf(d.fileId)}: ${d.fileName}${this.layerFiles().includes(d.fileId) ? '' : ' (new override)'}` }));
   });
 
   /** Path of this technical profile's element in the write file, if it exists. */
@@ -124,7 +124,7 @@ export class TechnicalProfileEditor {
     for (const j of [...e.userJourneys.values(), ...e.subJourneys.values()]) {
       for (const st of j.value.steps) {
         if (st.claimsExchanges.some((x) => idKey(x.technicalProfileReferenceId) === id) || idKey(st.cpimIssuerTechnicalProfileReferenceId) === id) {
-          out.push({ label: `${j.id} · step ${st.orderText}`, go: () => this.store.select({ kind: 'step', journeyId: j.id, stepKey: `${j.id}#${st.orderText.trim()}` }) });
+          out.push({ label: `${j.id}, step ${st.orderText}`, go: () => this.store.select({ kind: 'step', journeyId: j.id, stepKey: `${j.id}#${st.orderText.trim()}` }) });
         }
       }
     }

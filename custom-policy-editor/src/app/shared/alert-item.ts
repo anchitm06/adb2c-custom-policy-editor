@@ -48,7 +48,7 @@ import { Icon } from './icon';
   `,
   styles: `
     :host { display: block; }
-    .alert { display: flex; align-items: flex-start; gap: 8px; padding: 6px 8px; border-radius: 6px; }
+    .alert { display: flex; align-items: flex-start; gap: 8px; padding: 6px 8px; border-radius: var(--radius-input); }
     .ico { margin-top: 2px; }
     .alert.error .ico { color: var(--error); }
     .alert.warning .ico { color: var(--warning); }
@@ -56,8 +56,8 @@ import { Icon } from './icon';
     .main { flex: 1; min-width: 0; }
     .msg { overflow-wrap: anywhere; }
     .links { display: inline-flex; gap: 10px; margin-left: 8px; white-space: nowrap; }
-    .link { display: inline-flex; align-items: center; gap: 3px; border: 0; background: none; padding: 0; font: inherit; font-size: 12px; color: var(--accent); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
-    .detail { margin-top: 6px; padding: 8px 10px; border-left: 2px solid var(--border-strong); background: var(--surface-2); font-size: 12.5px; }
+    .link { display: inline-flex; align-items: center; gap: 3px; border: 0; background: none; padding: 0; font: inherit; font-size: var(--text-xs); color: var(--accent); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+    .detail { margin-top: 6px; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-part); background: var(--surface-2); font-size: var(--text-sm); }
     .detail p { margin: 0 0 6px; }
     .detail .title { font-weight: 600; }
     .detail .k { font-weight: 600; margin-right: 4px; }

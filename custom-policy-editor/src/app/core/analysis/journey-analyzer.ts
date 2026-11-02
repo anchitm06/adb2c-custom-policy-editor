@@ -34,7 +34,7 @@ export interface ClaimState {
   status: Presence;
   /** Constraint on the value, valid when the claim is present. */
   value?: ValueInfo;
-  /** Where the claim was produced, for example "Step 2 · Facebook-OAUTH". */
+  /** Where the claim was produced, for example "Step 2, Facebook-OAUTH". */
   sources: string[];
   /** Why presence is unknown. */
   uncertainty?: { kind: 'directoryRead' | 'optionalInput' | 'continueOnError' | 'fromApp' | 'transformation'; tp?: string };
@@ -192,7 +192,7 @@ function setClaim(bag: Map<string, ClaimState>, claim: string, st: ClaimInit): v
 function witness(s: State): string {
   if (s.overflow) return 'several scenarios';
   const first = s.trails[0];
-  const label = first && first.length ? first.map((i) => i.label).join(' · ') : 'Main path';
+  const label = first && first.length ? first.map((i) => i.label).join(', ') : 'Main path';
   return s.trails.length > 1 ? `${label} (and ${s.trails.length - 1} similar)` : label;
 }
 
@@ -910,7 +910,7 @@ function executeStep(ctx: Ctx, journey: UserJourneyDef, step: OrchestrationStepD
           const x = step.claimsExchanges.find((e) => idKey(e.id) === idKey(o.run));
           if (x) {
             const missing: Missing[] = [];
-            for (const r of runner.runTechnicalProfile(x.technicalProfileReferenceId, s, `${source} · ${x.technicalProfileReferenceId}`, missing)) {
+            for (const r of runner.runTechnicalProfile(x.technicalProfileReferenceId, s, `${source}, ${x.technicalProfileReferenceId}`, missing)) {
               finish(r, { exchangeId: x.id, tpId: x.technicalProfileReferenceId, missing });
             }
             continue;
@@ -936,7 +936,7 @@ function executeStep(ctx: Ctx, journey: UserJourneyDef, step: OrchestrationStepD
       for (const l of multiple ? keepOptions(fx, id, labelled) : labelled) {
         const s = cleared(multiple ? fork(state, { d: id, o: l.key, label: l.label }) : state);
         const missing: Missing[] = [];
-        for (const r of runner.runTechnicalProfile(l.x.technicalProfileReferenceId, s, `${source} · ${l.x.technicalProfileReferenceId}`, missing)) {
+        for (const r of runner.runTechnicalProfile(l.x.technicalProfileReferenceId, s, `${source}, ${l.x.technicalProfileReferenceId}`, missing)) {
           finish(r, { exchangeId: l.x.id, tpId: l.x.technicalProfileReferenceId, missing });
         }
       }
@@ -946,8 +946,8 @@ function executeStep(ctx: Ctx, journey: UserJourneyDef, step: OrchestrationStepD
       const s = cleared(state);
       for (const ic of eff.relyingParty?.technicalProfile?.inputClaims ?? []) {
         if (get(s.bag, ic.claimTypeReferenceId)?.status === 'present') continue;
-        if (ic.defaultValue !== undefined) setClaim(s.bag, ic.claimTypeReferenceId, { status: 'present', source: `${source} · relying party` });
-        else setClaim(s.bag, ic.claimTypeReferenceId, { status: 'unknown', source: `${source} · relying party`, uncertainty: { kind: 'fromApp' } });
+        if (ic.defaultValue !== undefined) setClaim(s.bag, ic.claimTypeReferenceId, { status: 'present', source: `${source}, relying party` });
+        else setClaim(s.bag, ic.claimTypeReferenceId, { status: 'unknown', source: `${source}, relying party`, uncertainty: { kind: 'fromApp' } });
       }
       finish(s);
       break;
@@ -1030,7 +1030,7 @@ function namedPathsOf(done: State[]): NamedPath[] | null {
   for (const s of done) {
     if (s.overflow) return null;
     for (const t of s.trails) {
-      const label = t.length ? t.map((i) => i.label).join(' · ') : 'Main path';
+      const label = t.length ? t.map((i) => i.label).join(', ') : 'Main path';
       if (seen.has(label)) continue;
       seen.add(label);
       out.push({ id: out.length, label, assume: t.map((i) => [i.d, i.o] as [string, string]), outcome: s.terminated ?? 'incomplete' });

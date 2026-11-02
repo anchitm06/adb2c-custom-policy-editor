@@ -12,7 +12,7 @@ import { XmlEditor } from './xml-editor';
   imports: [XmlEditor, Icon],
   template: `
     <div class="row bar">
-      <span class="muted small truncate grow">{{ store.fileName(ref().fileId) }} · line {{ line() }}</span>
+      <span class="muted small truncate grow">{{ store.fileName(ref().fileId) }}, line {{ line() }}</span>
       <button class="btn sm ghost" title="Show in the file" (click)="store.revealRef(ref())"><app-icon name="external" [size]="13" /> Open in file</button>
       <button class="btn sm" [disabled]="!dirty()" (click)="draft.set(null)">Revert</button>
       <button class="btn sm primary" [disabled]="!dirty() || !!error()" (click)="apply()">Apply</button>

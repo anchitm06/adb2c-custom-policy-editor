@@ -14,7 +14,7 @@ import { ElementXml } from '../xml-editor/element-xml';
         <app-icon name="globe" [size]="22" />
         <div class="grow">
           <h2 class="mono">{{ r.id }}</h2>
-          <div class="muted small">{{ r.strings.length }} strings · languages: {{ languages().join(', ') || 'none declared' }}{{ defaultLanguage() ? ' (default ' + defaultLanguage() + ')' : '' }}</div>
+          <div class="muted small">{{ r.strings.length }} strings, languages: {{ languages().join(', ') || 'none declared' }}{{ defaultLanguage() ? ' (default ' + defaultLanguage() + ')' : '' }}</div>
         </div>
       </header>
       <div class="ed-body">
@@ -42,7 +42,7 @@ import { ElementXml } from '../xml-editor/element-xml';
           <section class="card sec">
             <h3>Localized collections</h3>
             @for (c of r.collections; track $index) {
-              <div class="li"><span class="mono">{{ c.elementId }}</span> · {{ c.targetCollection }} · {{ c.items.length }} items: {{ itemsText(c.items) }}</div>
+              <div class="li"><span class="mono">{{ c.elementId }}</span>, {{ c.targetCollection }}, {{ c.items.length }} items: {{ itemsText(c.items) }}</div>
             }
           </section>
         }

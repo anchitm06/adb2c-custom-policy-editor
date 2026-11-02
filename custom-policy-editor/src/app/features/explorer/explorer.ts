@@ -113,7 +113,7 @@ const VIEW_TITLES: Record<View, string> = {
     .search input { flex: 1; height: 26px; }
     .list { flex: 1 1 35%; overflow: auto; padding: 4px 6px 12px; min-height: 120px; }
     .outline { flex: 1 1 55%; border-top: 1px solid var(--border); min-height: 160px; }
-    .group { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-3); font-weight: 700; padding: 10px 8px 3px; }
+    .group { font-size: var(--text-xs); color: var(--text-3); font-weight: 700; padding: 10px 8px 3px; }
     .txt { line-height: 1.3; }
     .active { font-weight: 600; }
     .create { padding: 8px 10px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; background: var(--surface-2); }
@@ -156,8 +156,8 @@ export class Explorer {
           return s;
         };
         return [
-          ...[...e.userJourneys.values()].map((j) => ({ id: j.id, label: j.id, sub: `${j.value.steps.length} steps${idKey(j.id) === def ? ' · relying party default' : ''}`, icon: 'journey', layer: L(j.value.ref.fileId), file: F(j.value.ref.fileId), sel: { kind: 'journey', id: j.id } as Selection, group: 'User journeys', severity: jsev(j.id), active: idKey(j.id) === idKey(this.store.activeJourneyId()) })),
-          ...[...e.subJourneys.values()].map((j) => ({ id: 'sub:' + j.id, label: j.id, sub: `${j.value.subJourneyType ?? '?'} · ${j.value.steps.length} steps`, icon: 'subjourney', layer: L(j.value.ref.fileId), file: F(j.value.ref.fileId), sel: { kind: 'journey', id: j.id } as Selection, group: 'Sub journeys', severity: jsev(j.id), active: idKey(j.id) === idKey(this.store.activeJourneyId()) })),
+          ...[...e.userJourneys.values()].map((j) => ({ id: j.id, label: j.id, sub: `${j.value.steps.length} steps${idKey(j.id) === def ? ', relying party default' : ''}`, icon: 'journey', layer: L(j.value.ref.fileId), file: F(j.value.ref.fileId), sel: { kind: 'journey', id: j.id } as Selection, group: 'User journeys', severity: jsev(j.id), active: idKey(j.id) === idKey(this.store.activeJourneyId()) })),
+          ...[...e.subJourneys.values()].map((j) => ({ id: 'sub:' + j.id, label: j.id, sub: `${j.value.subJourneyType ?? '?'}, ${j.value.steps.length} steps`, icon: 'subjourney', layer: L(j.value.ref.fileId), file: F(j.value.ref.fileId), sel: { kind: 'journey', id: j.id } as Selection, group: 'Sub journeys', severity: jsev(j.id), active: idKey(j.id) === idKey(this.store.activeJourneyId()) })),
         ];
       }
       case 'technicalProfiles':
@@ -167,7 +167,7 @@ export class Explorer {
           return { id: t.id, label: t.id, sub: f?.displayName && f.displayName !== t.id ? f.displayName : undefined, icon: k.icon, layer: t.layers.map((l) => L(l.ref.fileId)).join('+'), file: t.layers.map((l) => F(l.ref.fileId)).join(', '), sel: { kind: 'technicalProfile', id: t.id } as Selection, group: k.label, severity: this.sev('technicalProfile', t.id) };
         });
       case 'claims':
-        return [...e.claimTypes.values()].map((c) => ({ id: c.id, label: c.id, sub: [c.value.displayName, c.value.dataType].filter(Boolean).join(' · '), icon: 'claim', layer: L(c.value.ref.fileId), file: F(c.value.ref.fileId), sel: { kind: 'claim', id: c.id } as Selection, severity: this.sev('claim', c.id) }));
+        return [...e.claimTypes.values()].map((c) => ({ id: c.id, label: c.id, sub: [c.value.displayName, c.value.dataType].filter(Boolean).join(', '), icon: 'claim', layer: L(c.value.ref.fileId), file: F(c.value.ref.fileId), sel: { kind: 'claim', id: c.id } as Selection, severity: this.sev('claim', c.id) }));
       case 'transformations':
         return [...e.claimsTransformations.values()].map((c) => ({ id: c.id, label: c.id, sub: c.value.method, icon: 'transform', layer: L(c.value.ref.fileId), file: F(c.value.ref.fileId), sel: { kind: 'transformation', id: c.id } as Selection, severity: this.sev('transformation', c.id) }));
       case 'contentDefinitions':
@@ -182,9 +182,9 @@ export class Explorer {
           ...[...e.predicateValidations.values()].map((c) => ({ id: 'pv:' + c.id, label: c.id, sub: `${c.value.groups.length} groups`, icon: 'rule', layer: L(c.value.ref.fileId), file: F(c.value.ref.fileId), sel: { kind: 'predicate', id: c.id } as Selection, group: 'Predicate validations' })),
         ];
       case 'relyingParty':
-        return this.store.relyingPartyChains().map((c) => ({ id: c.leaf.fileId, label: c.leaf.policyId ?? c.leaf.fileName, sub: `${c.leaf.relyingParty?.defaultUserJourney?.referenceId ?? ''} · ${c.leaf.fileName}`, icon: 'app', layer: 'RP', file: c.leaf.fileName, sel: { kind: 'relyingParty' } as Selection, active: c.leaf.fileId === this.store.activeChain()?.leaf.fileId }));
+        return this.store.relyingPartyChains().map((c) => ({ id: c.leaf.fileId, label: c.leaf.policyId ?? c.leaf.fileName, sub: `${c.leaf.relyingParty?.defaultUserJourney?.referenceId ?? ''}, ${c.leaf.fileName}`, icon: 'app', layer: 'RP', file: c.leaf.fileName, sel: { kind: 'relyingParty' } as Selection, active: c.leaf.fileId === this.store.activeChain()?.leaf.fileId }));
       case 'files':
-        return this.store.parsed().map((f) => ({ id: f.id, label: f.name, sub: f.doc?.policyId ?? f.error?.message, icon: 'file', layer: this.store.layerOf(f.id) || '—', file: f.name, sel: { kind: 'file', id: f.id } as Selection, severity: f.error ? 'error' : undefined }));
+        return this.store.parsed().map((f) => ({ id: f.id, label: f.name, sub: f.doc?.policyId ?? f.error?.message, icon: 'file', layer: this.store.layerOf(f.id) || 'none', file: f.name, sel: { kind: 'file', id: f.id } as Selection, severity: f.error ? 'error' : undefined }));
     }
   });
 

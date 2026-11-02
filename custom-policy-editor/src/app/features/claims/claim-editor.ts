@@ -25,7 +25,7 @@ interface Usage {
         <app-icon name="claim" [size]="22" />
         <div class="grow">
           <h2 class="mono">{{ c.id }}</h2>
-          <div class="muted small">{{ c.displayName }} · {{ c.dataType ?? 'no data type' }}</div>
+          <div class="muted small">{{ c.displayName }}, {{ c.dataType ?? 'no data type' }}</div>
         </div>
         <div class="layers">
           @for (l of layers(); track $index) {
@@ -142,7 +142,7 @@ interface Usage {
             <h3>In the claims bag of {{ store.activeJourneyId() }}</h3>
             <div class="flowrow">
               @for (r of journeyRows(); track r.key) {
-                <button class="chip clickable {{ r.cls }}" [title]="r.title" (click)="r.go()">{{ r.order }} · {{ r.label }}</button>
+                <button class="chip clickable {{ r.cls }}" [title]="r.title" (click)="r.go()">{{ r.order }}, {{ r.label }}</button>
               }
             </div>
           </section>
@@ -232,7 +232,7 @@ export class ClaimEditor {
       const before = availabilityBefore(a, s.stepKey, this.claimId());
       return {
         key: s.stepKey,
-        order: s.journeyId === a.journeyId ? `${s.order}` : `${s.journeyId}·${s.order}`,
+        order: s.journeyId === a.journeyId ? `${s.order}` : `${s.journeyId}:${s.order}`,
         label: AVAILABILITY_LABEL[av],
         cls: AVAILABILITY_CLASS[av],
         title: `After step ${s.order}: ${AVAILABILITY_LABEL[av]} (before: ${AVAILABILITY_LABEL[before?.availability ?? 'absent']})`,

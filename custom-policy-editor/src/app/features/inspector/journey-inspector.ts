@@ -16,7 +16,7 @@ import { AlertItem } from '../../shared/alert-item';
         <app-icon [name]="j.kind === 'SubJourney' ? 'subjourney' : 'journey'" [size]="20" />
         <div class="grow">
           <div class="title">{{ j.id }}</div>
-          <div class="muted small">{{ j.kind === 'SubJourney' ? 'Sub journey (' + (j.subJourneyType ?? '?') + ')' : 'User journey' }} · <span class="layer">{{ store.layerOf(j.ref.fileId) }}</span> {{ store.fileName(j.ref.fileId) }}</div>
+          <div class="muted small">{{ j.kind === 'SubJourney' ? 'Sub journey (' + (j.subJourneyType ?? '?') + ')' : 'User journey' }}, <span class="layer">{{ store.layerOf(j.ref.fileId) }}</span> {{ store.fileName(j.ref.fileId) }}</div>
         </div>
       </div>
       <div class="body">
@@ -34,8 +34,8 @@ import { AlertItem } from '../../shared/alert-item';
           <div class="field">
             <label for="j-type">Type</label>
             <select id="j-type" [appValue]="j.subJourneyType ?? ''" (change)="setAttr('Type', $any($event.target).value)">
-              <option value="Call">Call — returns to the calling journey</option>
-              <option value="Transfer">Transfer — ends with its own SendClaims</option>
+              <option value="Call">Call: returns to the calling journey</option>
+              <option value="Transfer">Transfer: ends with its own SendClaims</option>
             </select>
           </div>
         }

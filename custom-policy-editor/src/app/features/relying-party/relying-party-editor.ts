@@ -17,7 +17,7 @@ import { SelectValue } from '../../shared/select-value';
         <app-icon name="app" [size]="22" />
         <div class="grow">
           <h2>{{ leaf()?.policyId }}</h2>
-          <div class="muted small">Relying party · {{ store.fileName(r.ref.fileId) }}</div>
+          <div class="muted small">Relying party, {{ store.fileName(r.ref.fileId) }}</div>
         </div>
       </header>
       <div class="ed-body">
