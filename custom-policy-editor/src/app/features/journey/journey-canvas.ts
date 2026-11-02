@@ -1,5 +1,5 @@
 import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDropList } from '@angular/cdk/drag-drop';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, signal } from '@angular/core';
 import { Availability, StepSummary } from '../../core/analysis/journey-analyzer';
 import { stepKey } from '../../core/analysis/journey-analyzer';
 import { explainPreconditions } from '../../core/analysis/precondition-explainer';
@@ -8,8 +8,9 @@ import { idKey, OrchestrationStepDef, SourceRef, UserJourneyDef } from '../../co
 import { Diagnostic } from '../../core/validate/validate';
 import { EditorStore } from '../../state/editor.store';
 import { Icon } from '../../shared/icon';
-import { AVAILABILITY_CLASS, plural, STEP_TYPE_INFO, stepTypeInfo, tpKindInfo } from '../../shared/present';
+import { AVAILABILITY_CLASS, STEP_TYPE_INFO, stepTypeInfo, tpKindInfo } from '../../shared/present';
 import { SelectValue } from '../../shared/select-value';
+import { ScenarioPicker } from '../scenario/scenario-picker';
 
 interface ExchangeVM {
   id: string;
@@ -19,7 +20,6 @@ interface ExchangeVM {
   kindLabel: string;
   via?: string;
   missing: boolean;
-  onPath?: boolean;
 }
 
 interface StepVM {
@@ -42,13 +42,13 @@ interface StepVM {
   errors: number;
   warnings: number;
   diags: Diagnostic[];
-  path?: { state: 'ran' | 'skipped' | 'unreached'; detail?: string };
+  path?: { state: 'ran' | 'skipped' | 'depends' | 'unreached'; detail?: string };
   changed: boolean;
 }
 
 @Component({
   selector: 'app-journey-canvas',
-  imports: [SelectValue, Icon, CdkDropList, CdkDrag, CdkDragHandle],
+  imports: [SelectValue, Icon, ScenarioPicker, CdkDropList, CdkDrag, CdkDragHandle],
   template: `
     @if (journey(); as j) {
       <div class="toolbar">
@@ -70,19 +70,15 @@ interface StepVM {
           </select>
           <span class="layer" [title]="store.fileName(j.ref.fileId)">{{ store.layerOf(j.ref.fileId) }}</span>
         </div>
-        <div class="paths">
-          <span class="muted small">Paths</span>
-          <button class="chip clickable" [class.accent]="store.selectedPath() === null" (click)="store.selectedPath.set(null)">All ({{ analysis()?.paths?.length ?? 0 }})</button>
-          @for (p of analysis()?.paths ?? []; track p.id) {
-            <button class="chip clickable" [class.accent]="store.selectedPath() === p.id" [title]="p.label + ' — ' + outcome(p.outcome)" (click)="store.selectedPath.set(store.selectedPath() === p.id ? null : p.id)">
-              <app-icon name="path" [size]="12" /> {{ p.label }}
-            </button>
-          }
-          @if (analysis()?.truncated) {
-            <span class="chip warning">truncated</span>
-          }
-        </div>
+        <app-scenario-picker />
+        <label class="small row showclaims"><input type="checkbox" [checked]="showClaims()" (change)="showClaims.set(!showClaims())" /> Claims on cards</label>
       </div>
+      @if (analysis()?.approximate) {
+        <div class="banner top small">
+          <app-icon name="info" [size]="15" />
+          <div class="grow">This journey has many independent branches, so some were merged to keep the analysis fast. Claim availability may read "maybe" where it is certain. Choose a scenario for exact results.</div>
+        </div>
+      }
 
       @if (baseBanner(); as b) {
         <div class="banner warning top">
@@ -110,9 +106,11 @@ interface StepVM {
               </div>
               <div
                 class="step card"
+                [attr.data-step]="s.key"
                 [class.selected]="isSelected(s)"
                 [class.ran]="s.path?.state === 'ran'"
                 [class.skipped]="s.path?.state === 'skipped' || s.path?.state === 'unreached'"
+                [class.depends]="s.path?.state === 'depends'"
                 [class.never]="!s.path && s.summary?.runs === 'never'"
                 [class.changed]="s.changed"
                 [class.haspre]="!!s.preSummary"
@@ -155,7 +153,7 @@ interface StepVM {
                   </div>
                 }
                 @for (x of s.exchanges; track x.id) {
-                  <div class="ex" [class.offpath]="x.onPath === false" [class.missing]="x.missing">
+                  <div class="ex" [class.missing]="x.missing">
                     <app-icon [name]="x.icon" [size]="14" />
                     <span class="name truncate" [title]="x.tpId">{{ x.name }}</span>
                     <span class="muted small truncate">{{ x.kindLabel }}</span>
@@ -205,23 +203,34 @@ interface StepVM {
                 }
 
                 @if (s.produced.length || s.needs.length) {
-                  <div class="claims">
-                    @if (s.produced.length) {
-                      <span class="lbl">Adds</span>
-                      @for (c of s.produced.slice(0, 6); track c) {
-                        <span class="chip ok">+ {{ c }}</span>
+                  @if (showClaims() || isSelected(s)) {
+                    <div class="claims">
+                      @if (s.produced.length) {
+                        <span class="lbl">Adds</span>
+                        @for (c of s.produced.slice(0, 6); track c) {
+                          <span class="chip ok">+ {{ c }}</span>
+                        }
+                        @if (s.produced.length > 6) {
+                          <span class="chip outline" [title]="s.produced.slice(6).join(', ')">+{{ s.produced.length - 6 }}</span>
+                        }
                       }
-                      @if (s.produced.length > 6) {
-                        <span class="chip outline" [title]="s.produced.slice(6).join(', ')">+{{ s.produced.length - 6 }}</span>
+                      @if (s.needs.length) {
+                        <span class="lbl">Needs</span>
+                        @for (n of s.needs; track n.claim) {
+                          <span class="chip {{ needClass(n.availability) }}" [title]="n.claim + ' is ' + (n.availability === 'absent' ? 'not in the claims bag' : 'missing in some scenarios') + ' before this step'">{{ n.claim }}</span>
+                        }
                       }
-                    }
-                    @if (s.needs.length) {
-                      <span class="lbl">Needs</span>
-                      @for (n of s.needs; track n.claim) {
-                        <span class="chip {{ needClass(n.availability) }}" [title]="n.claim + ' is ' + (n.availability === 'absent' ? 'not in the claims bag' : 'missing on some paths') + ' before this step'">{{ n.claim }}</span>
+                    </div>
+                  } @else {
+                    <div class="claims-sum small muted">
+                      @if (s.produced.length) {
+                        <span>Adds {{ s.produced.length }}</span>
                       }
-                    }
-                  </div>
+                      @if (s.needs.length) {
+                        <span [class.bad]="needsMissing(s)">Needs {{ s.needs.length }}{{ needsMissing(s) ? ' (missing)' : '' }}</span>
+                      }
+                    </div>
+                  }
                 }
               </div>
             </div>
@@ -272,6 +281,21 @@ export class JourneyCanvas {
   protected readonly analysis = this.store.analysis;
   protected readonly adding = signal<{ index: number; x: number; y: number } | null>(null);
   protected readonly expanded = signal<Set<string>>(new Set());
+  protected readonly showClaims = signal(false);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+
+  constructor() {
+    // Scroll to the step chosen in the outline or reached from an alert.
+    effect(() => {
+      const key = this.store.focusStep();
+      if (!key) return;
+      queueMicrotask(() => {
+        const el = this.host.nativeElement.querySelector(`[data-step="${CSS.escape(key)}"]`);
+        el?.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+        this.store.focusStep.set(null);
+      });
+    });
+  }
   protected readonly stepTypes = Object.entries(STEP_TYPE_INFO).map(([type, i]) => ({ type, ...i }));
 
   protected readonly defaultJourney = computed(() => this.store.eff()?.relyingParty?.defaultUserJourney?.referenceId);
@@ -305,8 +329,7 @@ export class JourneyCanvas {
   private buildSteps(j: UserJourneyDef, depth = 0): StepVM[] {
     const eff = this.store.eff()!;
     const a = this.analysis();
-    const sel = this.store.selectedPath();
-    const path = sel !== null ? a?.paths[sel] : undefined;
+    const scenario = this.store.scenarioActive();
     const diags = this.store.diagnosticsByStep();
     const changed = this.store.changedSteps();
     const out: StepVM[] = [];
@@ -325,7 +348,6 @@ export class JourneyCanvas {
           if (signUp) via.set(idKey(signUp), 'sign-up link');
         }
       }
-      const visit = path?.visits.find((v) => v.stepKey === key);
       const exchanges: ExchangeVM[] = st.claimsExchanges.map((x) => {
         const tp = eff.tp(x.technicalProfileReferenceId);
         const k = tpKindInfo(tp?.kind);
@@ -337,7 +359,6 @@ export class JourneyCanvas {
           kindLabel: k.label,
           via: via.get(idKey(x.id)),
           missing: !tp,
-          onPath: visit ? (visit.ran ? visit.exchangeId === x.id : false) : undefined,
         };
       });
       const options: StepVM['options'] = [];
@@ -359,9 +380,7 @@ export class JourneyCanvas {
       const ex = st.preconditions.length ? explainPreconditions(st.preconditions, { eff, analysis: a ?? undefined, stepKey: key }) : null;
       const d = diags.get(key) ?? [];
       const runs = summary?.runs ?? 'unreached';
-      const total = (summary?.runPaths.length ?? 0) + (summary?.skipPaths.length ?? 0);
-      const runsText =
-        runs === 'always' ? 'Always runs' : runs === 'never' ? 'Never runs' : runs === 'sometimes' ? `Runs on ${summary!.runPaths.length} of ${plural(total, 'path')}` : 'Not reached';
+      const runsText = runs === 'always' ? 'Always runs' : runs === 'never' ? 'Never runs' : runs === 'sometimes' ? 'Runs in some cases' : 'Not reached';
       // Inputs needed by the technical profile(s) that are not definitely present.
       const needs: StepVM['needs'] = [];
       for (const m of summary?.missingInputs ?? []) {
@@ -370,14 +389,14 @@ export class JourneyCanvas {
         if (!needs.some((n) => idKey(n.claim) === idKey(m.claim))) needs.push({ claim: m.claim, availability: m.availability });
       }
       let pathInfo: StepVM['path'];
-      if (path) {
-        if (!visit) pathInfo = { state: 'unreached', detail: 'Not reached on this path.' };
-        else if (visit.ran) pathInfo = { state: 'ran' };
-        else {
-          const pi = visit.skippedBy ?? -1;
+      if (scenario) {
+        if (runs === 'always') pathInfo = { state: 'ran' };
+        else if (runs === 'sometimes') pathInfo = { state: 'depends', detail: 'Depends on choices that are still open.' };
+        else if (runs === 'never') {
+          const pi = [...(summary?.skippedBy.keys() ?? [])][0] ?? -1;
           const sentence = ex?.items[pi]?.sentence;
-          pathInfo = { state: 'skipped', detail: sentence ? `Skipped on this path: ${sentence} (precondition ${pi + 1})` : 'Skipped on this path.' };
-        }
+          pathInfo = { state: 'skipped', detail: sentence ? `Skipped in this scenario: ${sentence} (precondition ${pi + 1})` : 'Skipped in this scenario.' };
+        } else pathInfo = { state: 'unreached', detail: 'Not reached in this scenario.' };
       }
       out.push({
         step: st,
@@ -393,8 +412,8 @@ export class JourneyCanvas {
         preNever: !!ex?.never,
         summary,
         runs: runsText,
-        runsClass: pathInfo ? (pathInfo.state === 'ran' ? 'ok' : pathInfo.state === 'skipped' ? 'skip' : 'absent') : runs === 'always' ? 'ok' : runs === 'sometimes' ? 'maybe' : 'absent',
-        produced: path ? this.producedOnPath(visit) : (summary?.produced ?? []),
+        runsClass: pathInfo ? (pathInfo.state === 'ran' ? 'ok' : pathInfo.state === 'skipped' ? 'skip' : pathInfo.state === 'depends' ? 'maybe' : 'absent') : runs === 'always' ? 'ok' : runs === 'sometimes' ? 'maybe' : 'absent',
+        produced: summary?.produced ?? [],
         needs,
         errors: d.filter((x) => x.severity === 'error').length,
         warnings: d.filter((x) => x.severity === 'warning').length,
@@ -403,16 +422,6 @@ export class JourneyCanvas {
         changed: changed.has(key),
       });
     });
-    return out;
-  }
-
-  private producedOnPath(visit: { before: ReadonlyMap<string, { status: string; id: string }>; after: ReadonlyMap<string, { status: string; id: string; source?: string }>; ran: boolean } | undefined): string[] {
-    if (!visit || !visit.ran) return [];
-    const out: string[] = [];
-    for (const [k, st] of visit.after) {
-      const b = visit.before.get(k);
-      if (st.status !== 'absent' && (b?.status !== st.status || b !== st)) out.push(st.id);
-    }
     return out;
   }
 
@@ -427,15 +436,13 @@ export class JourneyCanvas {
 
   protected readonly tokenClaims = computed(() =>
     (this.analysis()?.tokenClaims ?? []).map((t) => {
-      const sel = this.store.selectedPath();
-      let av = t.availability.availability;
-      if (sel !== null) av = t.availability.presentOn.includes(sel) ? 'definitely' : t.availability.maybeOn.includes(sel) ? 'maybe' : 'absent';
-      const missingOn = [...t.availability.absentOn, ...t.availability.maybeOn].map((p) => this.analysis()!.paths[p]?.label);
+      const av = t.availability.availability;
+      const missing = [...t.availability.missingIn, ...t.availability.uncertainIn];
       return {
         claim: t.claim,
         partner: t.partnerClaimType,
         availability: av,
-        title: av === 'definitely' ? `${t.claim} is always in the token` : `${t.claim} is missing on: ${missingOn.join('; ')}`,
+        title: av === 'definitely' ? `${t.claim} is always in the token` : `${t.claim} is missing or uncertain in: ${missing.join('; ')}`,
       };
     }),
   );
@@ -446,17 +453,16 @@ export class JourneyCanvas {
   protected needClass(a: Availability): string {
     return a === 'absent' ? 'error' : 'maybe';
   }
-  protected outcome(o: string): string {
-    return o === 'token' ? 'issues a token' : o === 'transfer' ? 'transfers to a sub journey' : 'ends without a token';
+  protected needsMissing(s: StepVM): boolean {
+    return s.needs.some((n) => n.availability === 'absent');
   }
   protected pathStateLabel(s: StepVM): string {
-    return s.path?.state === 'ran' ? 'Runs on this path' : s.path?.state === 'skipped' ? 'Skipped' : 'Not reached';
+    return s.path?.state === 'ran' ? 'Runs' : s.path?.state === 'skipped' ? 'Skipped' : s.path?.state === 'depends' ? 'Depends on choices' : 'Not reached';
   }
   protected runsTitle(s: StepVM): string {
-    const a = this.analysis();
-    if (!s.summary || !a) return '';
-    const names = (ids: number[]) => ids.map((i) => a.paths[i]?.label).join('\n  ');
-    return `Runs on:\n  ${names(s.summary.runPaths) || '—'}\nSkipped on:\n  ${names(s.summary.skipPaths) || '—'}`;
+    if (!s.summary) return '';
+    const list = (xs: string[]) => (xs.length ? xs.join('\n  ') : 'none');
+    return `Runs when:\n  ${list(s.summary.ranWhen)}\nSkipped when:\n  ${list(s.summary.skippedWhen)}`;
   }
   protected diagTitle(s: StepVM): string {
     return s.diags.filter((d) => d.severity !== 'info').map((d) => `• ${d.message}`).join('\n');

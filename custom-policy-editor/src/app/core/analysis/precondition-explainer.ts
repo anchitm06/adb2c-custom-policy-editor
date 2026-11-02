@@ -22,8 +22,9 @@ export interface ExplainedPrecondition {
   /** Extra semantics worth knowing, for example the ClaimEquals null rule. */
   note?: string;
   problems: string[];
-  /** Paths (ids) on which this precondition is the one that skipped the step. */
-  skipsOn: number[];
+  /** How many analysed scenarios this precondition is the one that skips the step, with examples. */
+  skipCount: number;
+  skipsOn: string[];
 }
 
 export interface Lint {
@@ -63,7 +64,9 @@ export function explainPreconditions(preconditions: readonly Precondition[], opt
 
   const items: ExplainedPrecondition[] = parsed.map((p, index) => {
     const a = p.skipWhen;
-    const skipsOn = summary ? [...summary.skippedBy.entries()].filter(([, i]) => i === index).map(([path]) => path) : [];
+    const skip = summary?.skippedBy.get(index);
+    const skipsOn = skip?.witnesses ?? [];
+    const skipCount = skip?.count ?? 0;
     let note: string | undefined;
     if (a && (a.op === 'eq' || a.op === 'neq')) note = `Ignored when ${a.claim} is missing (ClaimEquals only applies to an existing claim).`;
     return {
@@ -72,6 +75,7 @@ export function explainPreconditions(preconditions: readonly Precondition[], opt
       sentence: a ? describeAtom(a) : 'Invalid precondition',
       note,
       problems: p.problems,
+      skipCount,
       skipsOn,
     };
   });
@@ -125,9 +129,9 @@ export function explainPreconditions(preconditions: readonly Precondition[], opt
 
   // Analysis-based lints.
   if (summary) {
-    const reached = summary.runPaths.length + summary.skipPaths.length;
+    const reached = summary.arrivals;
     if (reached && summary.runs === 'never' && valid.length) {
-      lints.push({ severity: 'info', message: 'On every analysed path one of these preconditions skips the step.' });
+      lints.push({ severity: 'info', message: 'In every analysed scenario one of these preconditions skips the step.' });
     }
     for (const it of items) {
       const a = it.atom;
@@ -151,10 +155,10 @@ export function explainPreconditions(preconditions: readonly Precondition[], opt
           });
         }
       }
-      if (reached > 1 && it.skipsOn.length === 0 && summary.runs !== 'never') {
-        const earlier = items.slice(0, it.index).some((x) => x.skipsOn.length > 0);
-        if (earlier || summary.runPaths.length === reached) {
-          lints.push({ severity: 'info', message: 'This precondition never decides the outcome on any analysed path.', index: it.index });
+      if (reached > 1 && it.skipCount === 0 && summary.runs !== 'never') {
+        const earlier = items.slice(0, it.index).some((x) => x.skipCount > 0);
+        if (earlier || summary.ranCount === reached) {
+          lints.push({ severity: 'info', message: 'This precondition never decides the outcome in any analysed scenario.', index: it.index });
         }
       }
     }

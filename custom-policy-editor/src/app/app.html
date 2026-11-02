@@ -7,7 +7,7 @@
     <div class="brand"><app-icon name="journey" [size]="18" /> <span>B2C policy editor</span></div>
     <div class="sep"></div>
     <label class="small muted" for="tb-policy">Policy</label>
-    <select id="tb-policy" class="policy" [appValue]="store.activeChain()?.leaf?.fileId ?? ''" (change)="store.activeLeafId.set($any($event.target).value); store.selectedPath.set(null)">
+    <select id="tb-policy" class="policy" [appValue]="store.activeChain()?.leaf?.fileId ?? ''" (change)="store.activeLeafId.set($any($event.target).value); store.clearScenario()">
       @for (c of store.chains(); track c.leaf.fileId) {
         <option [value]="c.leaf.fileId">{{ c.leaf.policyId ?? c.leaf.fileName }}{{ c.leaf.relyingParty ? '' : ' (no relying party)' }}</option>
       }

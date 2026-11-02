@@ -5,6 +5,7 @@ import { addClaimsTransformation, addClaimType, addContentDefinition, addJourney
 import { idKey } from '../../core/model/types';
 import { EditorStore, Selection, View } from '../../state/editor.store';
 import { Icon } from '../../shared/icon';
+import { StepOutline } from '../outline/step-outline';
 import { tpKindInfo } from '../../shared/present';
 
 interface Item {
@@ -35,7 +36,7 @@ const VIEW_TITLES: Record<View, string> = {
 
 @Component({
   selector: 'app-explorer',
-  imports: [Icon],
+  imports: [Icon, StepOutline],
   template: `
     <div class="panel-header">
       <strong class="grow truncate">{{ title() }}</strong>
@@ -102,12 +103,16 @@ const VIEW_TITLES: Record<View, string> = {
         <div class="empty small">Nothing here in this policy chain.</div>
       }
     </div>
+    @if (store.view() === 'journeys' && store.activeJourney()) {
+      <app-step-outline class="outline" />
+    }
   `,
   styles: `
     :host { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--surface); }
     .search { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--text-3); }
     .search input { flex: 1; height: 26px; }
-    .list { flex: 1; overflow: auto; padding: 4px 6px 12px; }
+    .list { flex: 1 1 35%; overflow: auto; padding: 4px 6px 12px; min-height: 120px; }
+    .outline { flex: 1 1 55%; border-top: 1px solid var(--border); min-height: 160px; }
     .group { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-3); font-weight: 700; padding: 10px 8px 3px; }
     .txt { line-height: 1.3; }
     .active { font-weight: 600; }

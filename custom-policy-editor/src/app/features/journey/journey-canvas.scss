@@ -11,7 +11,9 @@
   padding: 8px 14px;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  flex: none;
+  min-width: 0;
 }
 .jsel {
   display: flex;
@@ -22,16 +24,16 @@
     max-width: 280px;
   }
 }
-.paths {
+.showclaims {
+  margin-left: auto;
+  white-space: nowrap;
+}
+.claims-sum {
   display: flex;
-  align-items: center;
-  gap: 5px;
-  flex-wrap: wrap;
-  flex: 1;
-  min-width: 0;
-  .chip {
-    flex: none;
-    max-width: 260px;
+  gap: 12px;
+  margin: 6px 0 0 26px;
+  .bad {
+    color: var(--error);
   }
 }
 .banner.top {
@@ -178,6 +180,9 @@
   }
   &.never {
     opacity: 0.7;
+  }
+  &.depends {
+    border-style: dashed;
   }
   &.changed {
     animation: flash 2.5s ease-out;

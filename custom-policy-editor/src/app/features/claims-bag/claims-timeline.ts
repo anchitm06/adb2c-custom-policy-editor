@@ -118,7 +118,6 @@ export class ClaimsTimeline {
     const a = this.store.analysis();
     const eff = this.store.eff();
     if (!a || !eff) return [];
-    const p = this.store.selectedPath();
     const steps = this.steps();
     const token = new Map(a.tokenClaims.map((t) => [idKey(t.claim), t]));
     const ids = new Map<string, string>();
@@ -145,19 +144,10 @@ export class ClaimsTimeline {
       .map(([k, id]) => {
         const u = usage.get(k);
         const cells: Cell[] = steps.map((s) => {
-          let after: Availability = s.summary.after.get(k)?.availability ?? 'absent';
-          let ran = s.summary.runPaths.length > 0;
-          let before: Availability = s.summary.before.get(k)?.availability ?? 'absent';
-          let produced = ran && s.summary.produced.some((x) => idKey(x) === k);
-          if (p !== null) {
-            const v = a.paths[p]?.visits.find((x) => x.stepKey === s.key);
-            const st = v?.after.get(k);
-            after = !v ? 'absent' : st?.status === 'present' ? 'definitely' : st?.status === 'unknown' ? 'maybe' : 'absent';
-            const sb = v?.before.get(k);
-            before = !v ? 'absent' : sb?.status === 'present' ? 'definitely' : sb?.status === 'unknown' ? 'maybe' : 'absent';
-            ran = !!v?.ran;
-            produced = ran && !!st && st.status !== 'absent' && st !== sb;
-          }
+          const after: Availability = s.summary.after.get(k)?.availability ?? 'absent';
+          const ran = s.summary.ranCount > 0;
+          const before: Availability = s.summary.before.get(k)?.availability ?? 'absent';
+          const produced = ran && s.summary.produced.some((x) => idKey(x) === k);
           const isInput = !!u?.inputs.has(s.key);
           return {
             after,
@@ -169,7 +159,7 @@ export class ClaimsTimeline {
           };
         });
         const t = token.get(k);
-        const tokenAv: Availability | undefined = t ? (p !== null ? (t.availability.presentOn.includes(p) ? 'definitely' : t.availability.maybeOn.includes(p) ? 'maybe' : 'absent') : t.availability.availability) : undefined;
+        const tokenAv: Availability | undefined = t ? t.availability.availability : undefined;
         return { key: k, id, cells, token: tokenAv, first: cells.findIndex((c) => c.after !== 'absent') };
       });
     return rows.sort((x, y) => (x.first < 0 ? 999 : x.first) - (y.first < 0 ? 999 : y.first) || x.id.localeCompare(y.id));

@@ -133,8 +133,8 @@ const RUN_OPS: { op: AtomOp; label: string }[] = [
               @for (it of ex().items; track it.index) {
                 <li [class.dim]="!it.atom">
                   {{ it.sentence }}
-                  @if (analysis() && it.skipsOn.length) {
-                    <span class="chip skip" [title]="pathNames(it.skipsOn)">skips {{ it.skipsOn.length }} path{{ it.skipsOn.length > 1 ? 's' : '' }}</span>
+                  @if (analysis() && it.skipCount) {
+                    <span class="chip skip" [title]="it.skipsOn.join('\n')">decides {{ it.skipCount }} case{{ it.skipCount > 1 ? 's' : '' }}</span>
                   }
                 </li>
               }
@@ -154,22 +154,20 @@ const RUN_OPS: { op: AtomOp; label: string }[] = [
           </div>
         </div>
       }
-      @if (pathRows().length) {
-        <h4>On the analysed paths</h4>
+      @if (summary(); as sm) {
+        <h4>In the analysed scenarios</h4>
         <div class="paths">
-          @for (p of pathRows(); track p.id) {
-            <div class="prow" [class.sel]="store.selectedPath() === p.id" role="button" tabindex="0" (click)="store.selectedPath.set(store.selectedPath() === p.id ? null : p.id)" (keydown.enter)="store.selectedPath.set(p.id)">
-              @if (p.runs) {
-                <span class="chip ok">runs</span>
-              } @else if (p.skippedBy >= 0) {
-                <span class="chip skip">skipped by {{ p.skippedBy + 1 }}</span>
-              } @else {
-                <span class="chip absent">not reached</span>
-              }
-              <span class="truncate">{{ p.label }}</span>
-            </div>
+          @if (sm.ranWhen.length) {
+            <div class="prow"><span class="chip ok">runs</span><span class="truncate" [title]="sm.ranWhen.join('\n')">{{ sm.ranWhen.join('; ') }}</span></div>
+          }
+          @for (e of skippedList(); track e.index) {
+            <div class="prow"><span class="chip skip">skipped by {{ e.index + 1 }}</span><span class="truncate" [title]="e.witnesses.join('\n')">{{ e.witnesses.join('; ') }}</span></div>
+          }
+          @if (sm.runs === 'unreached') {
+            <div class="prow"><span class="chip absent">not reached</span><span class="muted">No scenario gets this far.</span></div>
           }
         </div>
+        <p class="muted small">Pick a scenario in the journey toolbar to see exactly what happens in one case.</p>
       }
       @for (l of generalLints(); track l.message) {
         <div class="lint {{ l.severity }} small"><app-icon [name]="l.severity" [size]="13" /> {{ l.message }}</div>
@@ -296,19 +294,12 @@ export class PreconditionEditor {
     return this.ex().items[i]?.note;
   }
 
-  protected readonly pathRows = computed(() => {
-    const a = this.analysis();
+  protected readonly summary = computed(() => {
     const k = this.stepKey();
-    if (!a || !k) return [];
-    const s = a.steps.get(k);
-    if (!s) return [];
-    return a.paths.map((p) => ({ id: p.id, label: p.label, runs: s.runPaths.includes(p.id), skippedBy: s.skippedBy.get(p.id) ?? -1 }));
+    return k ? (this.store.analysis()?.steps.get(k) ?? null) : null;
   });
 
-  protected pathNames(ids: number[]): string {
-    const a = this.store.analysis();
-    return ids.map((i) => a?.paths[i]?.label ?? `#${i}`).join('\n');
-  }
+  protected readonly skippedList = computed(() => [...(this.summary()?.skippedBy ?? [])].map(([index, v]) => ({ index, witnesses: v.witnesses })).sort((a, b) => a.index - b.index));
 
   protected valuesFor(claim: string): string[] {
     const eff = this.store.eff();

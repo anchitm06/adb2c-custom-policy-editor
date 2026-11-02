@@ -95,7 +95,7 @@ export class ClaimPicker {
     return [...eff.claimTypes.values()].map((e) => {
       const a = av?.get(idKey(e.id));
       const group: Option['group'] = !av ? 'all' : a?.availability === 'definitely' ? 'present' : a?.availability === 'maybe' ? 'maybe' : 'absent';
-      return { id: e.value.id, dataType: e.value.dataType, displayName: e.value.displayName, availability: av ? (a ?? { id: e.id, availability: 'absent', presentOn: [], maybeOn: [], absentOn: [], values: [], sources: [] }) : undefined, group };
+      return { id: e.value.id, dataType: e.value.dataType, displayName: e.value.displayName, availability: av ? (a ?? { id: e.id, availability: 'absent', presentCount: 0, maybeCount: 0, absentCount: 0, values: [], sources: [], missingIn: [], uncertainIn: [] }) : undefined, group };
     });
   });
 

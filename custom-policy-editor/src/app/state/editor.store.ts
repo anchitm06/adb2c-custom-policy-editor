@@ -60,7 +60,11 @@ export class EditorStore {
   readonly activeJourneyIdPref = signal<string | null>(null);
   readonly view = signal<View>('journeys');
   readonly selection = signal<Selection>(null);
-  readonly selectedPath = signal<number | null>(null);
+  /** Choices assumed when tracing a scenario through the journey (decision id to option key). */
+  readonly scenario = signal<{ assume: ReadonlyMap<string, string>; name: string | null }>({ assume: new Map(), name: null });
+  readonly scenarioActive = computed(() => this.scenario().assume.size > 0);
+  /** Step the canvas should scroll to (set by the outline and by navigation). */
+  readonly focusStep = signal<string | null>(null);
   readonly xmlFileId = signal<string | null>(null);
   readonly mainMode = signal<'visual' | 'xml'>('visual');
   readonly bottomTab = signal<'problems' | 'claims' | 'timeline'>('claims');
@@ -147,17 +151,27 @@ export class EditorStore {
     return e.userJourneys.get(idKey(id))?.value ?? e.subJourneys.get(idKey(id))?.value ?? null;
   });
 
-  readonly analysis = computed<JourneyAnalysis | null>(() => {
+  /** Analysis of all scenarios; used for validation, the list of choices and the impact of edits. */
+  readonly baseAnalysis = computed<JourneyAnalysis | null>(() => {
     const e = this.eff();
     const id = this.activeJourneyId();
     return e && id ? analyzeJourney(e, id) : null;
+  });
+
+  /** Analysis shown in the editor: all scenarios, or exactly the chosen scenario. */
+  readonly analysis = computed<JourneyAnalysis | null>(() => {
+    const base = this.baseAnalysis();
+    const sc = this.scenario();
+    const e = this.eff();
+    if (!base || !e || !sc.assume.size) return base;
+    return analyzeJourney(e, base.journeyId, { assume: sc.assume });
   });
 
   /** Analysis of the relying party's default journey (validated even when another journey is open). */
   private readonly defaultAnalysis = computed<JourneyAnalysis | null>(() => {
     const e = this.eff();
     const def = e?.relyingParty?.defaultUserJourney?.referenceId;
-    const cur = this.analysis();
+    const cur = this.baseAnalysis();
     if (!e || !def) return null;
     if (cur && idKey(cur.journeyId) === idKey(def)) return cur;
     return e.userJourneys.has(idKey(def)) ? analyzeJourney(e, def) : null;
@@ -169,7 +183,7 @@ export class EditorStore {
     for (const f of files) out.push(...validateFile(f, files));
     const e = this.eff();
     if (e) {
-      const analyses = [this.analysis(), this.defaultAnalysis()].filter((a, i, arr): a is JourneyAnalysis => !!a && arr.indexOf(a) === i);
+      const analyses = [this.baseAnalysis(), this.defaultAnalysis()].filter((a, i, arr): a is JourneyAnalysis => !!a && arr.indexOf(a) === i);
       out.push(...validateChain(e, analyses));
     }
     const rank = { error: 0, warning: 1, info: 2 };
@@ -249,6 +263,22 @@ export class EditorStore {
 
   // ------------------------------------------------------------------ workspace actions
 
+  clearScenario(): void {
+    this.scenario.set({ assume: new Map(), name: null });
+  }
+
+  setScenario(assume: Iterable<[string, string]>, name: string | null = null): void {
+    this.scenario.set({ assume: new Map(assume), name });
+  }
+
+  /** Set or clear one choice of the scenario. */
+  assume(decisionId: string, option: string | null): void {
+    const next = new Map(this.scenario().assume);
+    if (option === null) next.delete(decisionId);
+    else next.set(decisionId, option);
+    this.scenario.set({ assume: next, name: null });
+  }
+
   openFiles(files: { name: string; text: string }[], name?: string, replace = true): void {
     const list = files.map((f) => ({ id: newFileId(), name: f.name, text: f.text }));
     const parsed = sortByInheritance(list.map(parseFile));
@@ -261,7 +291,7 @@ export class EditorStore {
       this.targetFileIdPref.set(null);
       this.activeJourneyIdPref.set(null);
       this.selection.set(null);
-      this.selectedPath.set(null);
+      this.clearScenario();
       if (name) this.workspaceName.set(name);
     } else {
       this.pushHistory(`Import ${files.length} file${files.length > 1 ? 's' : ''}`);
@@ -312,7 +342,7 @@ export class EditorStore {
   /** Apply mutations to one or more files as a single undoable edit, then report the impact. */
   edit(label: string, mutations: FileMutation[], opts: { quiet?: boolean } = {}): boolean {
     if (!mutations.length) return false;
-    const before = { diagnostics: this.diagnostics(), analysis: this.analysis() ?? undefined };
+    const before = { diagnostics: this.diagnostics(), analysis: this.baseAnalysis() ?? undefined };
     const current = this.files();
     let next: PolicyFile[];
     try {
@@ -338,7 +368,7 @@ export class EditorStore {
 
   /** Replace the full text of a file (XML view). */
   setFileText(fileId: string, text: string, label = 'Edit XML'): void {
-    const before = { diagnostics: this.diagnostics(), analysis: this.analysis() ?? undefined };
+    const before = { diagnostics: this.diagnostics(), analysis: this.baseAnalysis() ?? undefined };
     const cur = this.files();
     const f = cur.find((x) => x.id === fileId);
     if (!f || f.text === text) return;
@@ -358,7 +388,7 @@ export class EditorStore {
     const s = this.undoStack();
     const e = s.at(-1);
     if (!e) return;
-    const before = { diagnostics: this.diagnostics(), analysis: this.analysis() ?? undefined };
+    const before = { diagnostics: this.diagnostics(), analysis: this.baseAnalysis() ?? undefined };
     this.undoStack.set(s.slice(0, -1));
     this.redoStack.update((r) => [...r, { label: e.label, files: this.files() }]);
     this.files.set(e.files);
@@ -370,7 +400,7 @@ export class EditorStore {
     const r = this.redoStack();
     const e = r.at(-1);
     if (!e) return;
-    const before = { diagnostics: this.diagnostics(), analysis: this.analysis() ?? undefined };
+    const before = { diagnostics: this.diagnostics(), analysis: this.baseAnalysis() ?? undefined };
     this.redoStack.set(r.slice(0, -1));
     this.undoStack.update((s) => [...s, { label: e.label, files: this.files() }]);
     this.files.set(e.files);
@@ -379,7 +409,7 @@ export class EditorStore {
   }
 
   private reportImpact(label: string, before: { diagnostics: Diagnostic[]; analysis?: JourneyAnalysis }, quiet = false): void {
-    const after = { diagnostics: this.diagnostics(), analysis: this.analysis() ?? undefined };
+    const after = { diagnostics: this.diagnostics(), analysis: this.baseAnalysis() ?? undefined };
     const impact = computeImpact(before, after);
     this.changedSteps.set(impact.changedSteps);
     setTimeout(() => {
@@ -556,7 +586,7 @@ export class EditorStore {
 
   openJourney(id: string): void {
     this.activeJourneyIdPref.set(id);
-    this.selectedPath.set(null);
+    this.clearScenario();
     this.view.set('journeys');
     this.mainMode.set('visual');
     this.selection.set({ kind: 'journey', id });

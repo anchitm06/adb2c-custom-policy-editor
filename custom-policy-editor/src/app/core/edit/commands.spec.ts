@@ -24,7 +24,7 @@ describe('edit commands', () => {
     expect(base.text).toContain('<Precondition Type="ClaimsExist" ExecuteActionsIf="false">\n              <Value>objectId</Value>');
     const { a } = analysis(files);
     // step 5 now runs on every path (objectId always exists there)
-    expect(a.steps.get(stepKey('SignUpOrSignIn', 5))!.runs).toBe('always');
+    expect(a.steps.get(stepKey("SignUpOrSignIn", 5))!.runs).toBe("always");
     // Only the changed region differs
     const a1 = before.split('\n');
     const b1 = base.text.split('\n');
@@ -59,7 +59,7 @@ describe('edit commands', () => {
     const { eff, a } = analysis(files);
     expect(eff.claimType('oid2')).toBeTruthy();
     expect(eff.claimType('objectId')).toBeUndefined();
-    expect(a.paths.length).toBe(4);
+    expect(a.namedPaths!.length).toBe(4);
     const ext = files[2];
     ext.text = applyToText(ext.text, (d) => {
       const tp = ensureTechnicalProfileOverride(d, 'AAD-Common', 'Azure Active Directory');

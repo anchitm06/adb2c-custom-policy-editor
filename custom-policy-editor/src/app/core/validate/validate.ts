@@ -277,7 +277,7 @@ export function validateChain(eff: EffectivePolicy, analyses: JourneyAnalysis[] 
   for (const a of analyses) {
     const journey = eff.userJourneys.get(idKey(a.journeyId))?.value;
     if (!journey) continue;
-    if (a.truncated) s.add({ severity: 'info', code: 'flow.truncated', message: `Journey "${journey.id}" has more than ${a.paths.length} paths; only the first ones were analysed.`, ref: journey.ref, target: { kind: 'journey', id: journey.id } });
+    if (a.approximate) s.add({ severity: 'info', code: 'analysis.approximate', message: `Journey "${journey.id}" has so many independent branches that some were merged. Claim availability may show "maybe" where it is certain; run a scenario for exact results.`, ref: journey.ref, target: { kind: 'journey', id: journey.id } });
     const allSteps = [...journey.steps.map((st) => ({ st, j: journey }))];
     for (const sum of a.steps.values()) {
       const j: UserJourneyDef | undefined = sum.journeyId === journey.id ? journey : eff.subJourneys.get(idKey(sum.journeyId))?.value;
@@ -286,7 +286,7 @@ export function validateChain(eff: EffectivePolicy, analyses: JourneyAnalysis[] 
       if (j !== journey && !allSteps.some((x) => x.st === st)) allSteps.push({ st, j });
       const target = { kind: 'step' as const, id: sum.stepKey, journeyId: j.id };
       if (sum.runs === 'never') {
-        s.add({ severity: 'info', code: 'flow.neverRuns', message: `Step ${st.orderText} of ${j.id} is skipped on every analysed path. (SSO session behaviour isn't modelled, so it may still run when a session restores claims.)`, ref: st.ref, target });
+        s.add({ severity: 'info', code: 'flow.neverRuns', message: `Step ${st.orderText} of ${j.id} is skipped in every analysed scenario. (SSO session behaviour isn't modelled, so it may still run when a session restores claims.)`, ref: st.ref, target });
       }
       for (const m of sum.missingInputs) {
         const tp = eff.tp(m.technicalProfileId);
@@ -294,7 +294,7 @@ export function validateChain(eff: EffectivePolicy, analyses: JourneyAnalysis[] 
         // Self-asserted and identity provider input claims only prefill values.
         const prefill = !m.required && (tp?.kind === 'selfAsserted' || (tp && TP_KINDS[tp.kind].interactive));
         if (prefill) continue;
-        if (m.availability === 'absent' && sum.runPaths.length)
+        if (m.availability === 'absent' && sum.ranCount)
           s.add({ severity: 'warning', code: 'flow.input', message: `Step ${st.orderText}: input claim "${m.claim}" of ${m.technicalProfileId} is never in the claims bag when it runs.`, ref: st.ref, target });
         else if (m.availability === 'maybe' && critical)
           s.add({ severity: 'info', code: 'flow.input', message: `Step ${st.orderText}: input claim "${m.claim}" of ${m.technicalProfileId} is missing on some paths.`, ref: st.ref, target });

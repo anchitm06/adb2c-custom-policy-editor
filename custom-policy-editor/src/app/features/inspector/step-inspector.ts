@@ -207,8 +207,7 @@ export class StepInspector {
   protected readonly runsText = computed(() => {
     const s = this.summary();
     if (!s) return 'Not reached';
-    const total = s.runPaths.length + s.skipPaths.length;
-    return s.runs === 'always' ? 'Always runs' : s.runs === 'never' ? 'Never runs' : `Runs on ${s.runPaths.length}/${total} paths`;
+    return s.runs === 'always' ? 'Always runs' : s.runs === 'never' ? 'Never runs' : 'Runs in some cases';
   });
   protected readonly runsClass = computed(() => {
     const r = this.summary()?.runs;
