@@ -17,7 +17,7 @@ import { SelectValue } from '../../shared/select-value';
         <app-icon name="app" [size]="22" />
         <div class="grow">
           <h2>{{ leaf()?.policyId }}</h2>
-          <div class="muted small">Relying party · {{ store.fileName(r.ref.fileId) }}</div>
+          <div class="muted small">Relying party, {{ store.fileName(r.ref.fileId) }}</div>
         </div>
       </header>
       <div class="ed-body">
@@ -106,7 +106,7 @@ export class RelyingPartyEditor {
     const def = this.rp()?.defaultUserJourney?.referenceId;
     return a && def && idKey(a.journeyId) === idKey(def) ? a : null;
   });
-  protected readonly analysisNote = computed(() => (this.a() ? `Availability is computed over the ${this.a()!.paths.length} paths of ${this.a()!.journeyId}.` : 'Open the default journey to see claim availability.'));
+  protected readonly analysisNote = computed(() => (this.a() ? `Availability is computed across the scenarios of ${this.a()!.journeyId}.` : 'Open the default journey to see claim availability.'));
   protected readonly finalBag = computed(() => {
     const a = this.a();
     if (!a) return null;
@@ -119,8 +119,8 @@ export class RelyingPartyEditor {
     return (tp?.outputClaims ?? []).map((c) => {
       const t = a?.tokenClaims.find((x) => idKey(x.claim) === idKey(c.claimTypeReferenceId));
       const av = t?.availability.availability;
-      const missing = t ? [...t.availability.absentOn, ...t.availability.maybeOn].map((p) => a!.paths[p]?.label) : [];
-      return { claim: c, av, title: av === 'definitely' ? 'Present on every path' : `Missing or uncertain on: ${missing.join('; ')}` };
+      const missing = t ? [...t.availability.missingIn, ...t.availability.uncertainIn] : [];
+      return { claim: c, av, title: av === 'definitely' ? 'Present in every scenario' : `Missing or uncertain in: ${missing.join('; ')}` };
     });
   });
   protected cls(a: 'definitely' | 'maybe' | 'absent'): string {

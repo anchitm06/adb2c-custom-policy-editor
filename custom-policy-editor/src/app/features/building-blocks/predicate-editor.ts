@@ -12,7 +12,7 @@ import { ElementXml } from '../xml-editor/element-xml';
     @if (pred(); as p) {
       <header class="ed-head">
         <app-icon name="rule" [size]="22" />
-        <div class="grow"><h2 class="mono">{{ p.id }}</h2><div class="muted small">Predicate · {{ p.method }}</div></div>
+        <div class="grow"><h2 class="mono">{{ p.id }}</h2><div class="muted small">Predicate, {{ p.method }}</div></div>
       </header>
       <div class="ed-body">
         <section class="card sec">
@@ -30,7 +30,7 @@ import { ElementXml } from '../xml-editor/element-xml';
     } @else if (pv(); as v) {
       <header class="ed-head">
         <app-icon name="rule" [size]="22" />
-        <div class="grow"><h2 class="mono">{{ v.id }}</h2><div class="muted small">Predicate validation · {{ v.groups.length }} groups</div></div>
+        <div class="grow"><h2 class="mono">{{ v.id }}</h2><div class="muted small">Predicate validation, {{ v.groups.length }} groups</div></div>
       </header>
       <div class="ed-body">
         @for (g of v.groups; track g.id) {

@@ -14,7 +14,7 @@ import { SelectValue } from '../../shared/select-value';
       <app-icon name="files" [size]="22" />
       <div class="grow">
         <h2>{{ store.workspaceName() }}</h2>
-        <div class="muted small">{{ store.files().length }} files · saved in this browser</div>
+        <div class="muted small">{{ store.files().length }} files, saved in this browser</div>
       </div>
       <label class="btn">
         <input type="file" multiple accept=".xml,.zip" hidden (change)="add($event)" />
@@ -31,7 +31,7 @@ import { SelectValue } from '../../shared/select-value';
             @for (f of rows(); track f.id) {
               <tr [class.selected]="f.id === selectedId()">
                 <td><input type="text" [value]="f.name" aria-label="File name" (change)="store.renameFile(f.id, $any($event.target).value)" /></td>
-                <td><span class="layer">{{ f.layer || '—' }}</span></td>
+                <td><span class="layer">{{ f.layer || 'none' }}</span></td>
                 <td class="mono small">{{ f.policyId }}</td>
                 <td class="mono small">{{ f.base }}</td>
                 <td>
@@ -61,7 +61,7 @@ import { SelectValue } from '../../shared/select-value';
         <p class="muted small">Microsoft recommends leaving the base file unchanged and putting changes in the extensions or relying party file. New claims, technical profiles and overrides are written here.</p>
         <select [appValue]="store.targetFile()?.fileId ?? ''" (change)="store.targetFileIdPref.set($any($event.target).value)" aria-label="Target file">
           @for (d of store.activeChain()?.docs ?? []; track d.fileId) {
-            <option [value]="d.fileId">{{ store.layerOf(d.fileId) }} — {{ d.fileName }}</option>
+            <option [value]="d.fileId">{{ store.layerOf(d.fileId) }}: {{ d.fileName }}</option>
           }
         </select>
       </section>

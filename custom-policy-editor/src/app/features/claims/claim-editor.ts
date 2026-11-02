@@ -8,6 +8,7 @@ import { Icon } from '../../shared/icon';
 import { AVAILABILITY_CLASS, AVAILABILITY_LABEL } from '../../shared/present';
 import { ElementXml } from '../xml-editor/element-xml';
 import { SelectValue } from '../../shared/select-value';
+import { AlertItem } from '../../shared/alert-item';
 
 interface Usage {
   kind: 'set' | 'read' | 'check' | 'token' | 'transform' | 'persist';
@@ -17,14 +18,14 @@ interface Usage {
 
 @Component({
   selector: 'app-claim-editor',
-  imports: [SelectValue, Icon, ElementXml],
+  imports: [AlertItem, SelectValue, Icon, ElementXml],
   template: `
     @if (ct(); as c) {
       <header class="ed-head">
         <app-icon name="claim" [size]="22" />
         <div class="grow">
           <h2 class="mono">{{ c.id }}</h2>
-          <div class="muted small">{{ c.displayName }} · {{ c.dataType ?? 'no data type' }}</div>
+          <div class="muted small">{{ c.displayName }}, {{ c.dataType ?? 'no data type' }}</div>
         </div>
         <div class="layers">
           @for (l of layers(); track $index) {
@@ -34,7 +35,7 @@ interface Usage {
       </header>
       <div class="ed-body">
         @for (d of problems(); track d.key) {
-          <div class="banner {{ d.severity }} small"><app-icon [name]="d.severity" [size]="14" /> {{ d.message }}</div>
+          <app-alert-item [severity]="d.severity" [message]="d.message" [code]="d.code" [quickFix]="d.fix" />
         }
         <section class="card sec">
           <h3>Definition</h3>
@@ -141,7 +142,7 @@ interface Usage {
             <h3>In the claims bag of {{ store.activeJourneyId() }}</h3>
             <div class="flowrow">
               @for (r of journeyRows(); track r.key) {
-                <button class="chip clickable {{ r.cls }}" [title]="r.title" (click)="r.go()">{{ r.order }} · {{ r.label }}</button>
+                <button class="chip clickable {{ r.cls }}" [title]="r.title" (click)="r.go()">{{ r.order }}, {{ r.label }}</button>
               }
             </div>
           </section>
@@ -231,7 +232,7 @@ export class ClaimEditor {
       const before = availabilityBefore(a, s.stepKey, this.claimId());
       return {
         key: s.stepKey,
-        order: s.journeyId === a.journeyId ? `${s.order}` : `${s.journeyId}·${s.order}`,
+        order: s.journeyId === a.journeyId ? `${s.order}` : `${s.journeyId}:${s.order}`,
         label: AVAILABILITY_LABEL[av],
         cls: AVAILABILITY_CLASS[av],
         title: `After step ${s.order}: ${AVAILABILITY_LABEL[av]} (before: ${AVAILABILITY_LABEL[before?.availability ?? 'absent']})`,

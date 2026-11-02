@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
-import { Availability, ClaimAvailability, ClaimState, stepKey as mkKey } from '../../core/analysis/journey-analyzer';
+import { Availability, ClaimAvailability, stepKey as mkKey } from '../../core/analysis/journey-analyzer';
 import { idKey } from '../../core/model/types';
 import { EditorStore } from '../../state/editor.store';
 import { Icon } from '../../shared/icon';
@@ -78,7 +78,7 @@ interface Row {
     .bar input[type='search'] { width: 160px; height: 24px; }
     .scroll { overflow: auto; flex: 1; }
     tr.changed td { background: color-mix(in srgb, var(--ok-bg) 60%, transparent); }
-    .use { margin-left: 4px; height: 16px; font-size: 10px; }
+    .use { margin-left: 4px; height: 16px; font-size: var(--text-xs); }
     .truncate-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -106,10 +106,9 @@ export class ClaimsBag {
   });
 
   protected readonly pathLabel = computed(() => {
-    const p = this.store.selectedPath();
-    const a = this.store.analysis();
-    if (p === null || !a) return `across ${a?.paths.length ?? 0} analysed paths`;
-    return `on path “${a.paths[p]?.label}”`;
+    const sc = this.store.scenario();
+    if (!sc.assume.size) return 'across all scenarios';
+    return sc.name ? `in scenario "${sc.name}"` : `in the chosen scenario`;
   });
 
   private readonly used = computed(() => {
@@ -139,7 +138,6 @@ export class ClaimsBag {
     const s = this.step();
     const a = this.store.analysis();
     if (!s || !a) return [];
-    const p = this.store.selectedPath();
     const used = this.used();
     const keys = new Set([...s.before.keys(), ...s.after.keys(), ...used.keys()]);
     const eff = this.store.eff();
@@ -147,30 +145,19 @@ export class ClaimsBag {
     for (const k of keys) {
       const b = s.before.get(k);
       const af = s.after.get(k);
-      const id = af?.id ?? b?.id ?? eff?.claimType(k)?.id ?? k;
-      let before: Availability = b?.availability ?? 'absent';
-      let after: Availability = af?.availability ?? 'absent';
-      let values = af?.values ?? b?.values ?? [];
-      let source = (af?.sources ?? b?.sources ?? []).join('; ');
-      let note = '';
-      let pathChanged: boolean | undefined;
-      if (p !== null) {
-        const visit = a.paths[p]?.visits.find((v) => v.stepKey === s.stepKey);
-        if (!visit) continue;
-        const sb = visit.before.get(k);
-        const sa = visit.after.get(k);
-        before = conc(sb);
-        after = conc(sa);
-        values = sa?.value?.kind === 'eq' ? [sa.value.value] : sa?.value?.kind === 'neq' ? sa.value.values.map((v) => `≠ ${v}`) : [];
-        source = sa?.source ?? sb?.source ?? '';
-        if (sa?.status === 'unknown') note = uncertainty(sa);
-        pathChanged = visit.ran && !!sa && sa.status !== 'absent' && sa !== sb;
-      } else if (af) {
-        note = missingNote(af, a.paths.map((x) => x.label));
-      } else if (b) {
-        note = missingNote(b, a.paths.map((x) => x.label));
-      }
-      rows.push({ key: k, id, before, after, values, source, note, used: used.get(k) ?? [], changed: pathChanged ?? (s.runPaths.length > 0 && s.produced.some((x) => idKey(x) === k)) });
+      const cur = af ?? b;
+      const note = cur?.availability === 'maybe' ? missingNote(cur, af?.uncertainIn ?? []) : '';
+      rows.push({
+        key: k,
+        id: cur?.id ?? eff?.claimType(k)?.id ?? k,
+        before: b?.availability ?? 'absent',
+        after: af?.availability ?? 'absent',
+        values: cur?.values ?? [],
+        source: (cur?.sources ?? []).join('; '),
+        note,
+        used: used.get(k) ?? [],
+        changed: s.ranCount > 0 && s.produced.some((x) => idKey(x) === k),
+      });
     }
     const order: Record<Availability, number> = { definitely: 0, maybe: 1, absent: 2 };
     return rows.sort((x, y) => order[x.after] - order[y.after] || x.id.localeCompare(y.id));
@@ -195,33 +182,9 @@ export class ClaimsBag {
   }
 }
 
-function conc(s: ClaimState | undefined): Availability {
-  return s?.status === 'present' ? 'definitely' : s?.status === 'unknown' ? 'maybe' : 'absent';
-}
-
-function uncertainty(s: ClaimState): string {
-  switch (s.uncertainty?.kind) {
-    case 'directoryRead':
-      return `Only if ${s.uncertainty.tp} finds the account`;
-    case 'optionalInput':
-      return 'Optional field the user may leave empty';
-    case 'continueOnError':
-      return `Only if ${s.uncertainty.tp} succeeds (ContinueOnError)`;
-    case 'fromApp':
-      return 'Only if the application sends it';
-    case 'transformation':
-      return 'Only if the transformation inputs exist';
-    default:
-      return '';
-  }
-}
-
-function missingNote(a: ClaimAvailability, labels: string[]): string {
-  if (a.availability !== 'maybe') return '';
-  const missing = a.absentOn.map((i) => labels[i]);
-  const unsure = a.maybeOn.map((i) => labels[i]);
+function missingNote(a: ClaimAvailability, uncertain: string[]): string {
   const parts: string[] = [];
-  if (missing.length) parts.push(`missing on: ${missing.join('; ')}`);
-  if (unsure.length) parts.push(`uncertain on: ${unsure.join('; ')}`);
-  return parts.join(' · ');
+  if (a.missingIn.length) parts.push(`missing in: ${a.missingIn.join('; ')}`);
+  if (uncertain.length) parts.push(`only possibly there in: ${uncertain.join('; ')}`);
+  return parts.join(', ');
 }

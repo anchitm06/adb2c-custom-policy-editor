@@ -3,54 +3,26 @@
 } @else if (!store.files().length) {
   <app-welcome />
 } @else {
-  <header class="topbar">
-    <div class="brand"><app-icon name="journey" [size]="18" /> <span>B2C policy editor</span></div>
-    <div class="sep"></div>
-    <label class="small muted" for="tb-policy">Policy</label>
-    <select id="tb-policy" class="policy" [appValue]="store.activeChain()?.leaf?.fileId ?? ''" (change)="store.activeLeafId.set($any($event.target).value); store.selectedPath.set(null)">
-      @for (c of store.chains(); track c.leaf.fileId) {
-        <option [value]="c.leaf.fileId">{{ c.leaf.policyId ?? c.leaf.fileName }}{{ c.leaf.relyingParty ? '' : ' (no relying party)' }}</option>
-      }
-    </select>
-    <nav class="chain" aria-label="Inheritance chain">
-      @for (d of store.activeChain()?.docs ?? []; track d.fileId; let last = $last) {
-        <button class="crumb" [class.target]="d.fileId === store.targetFile()?.fileId" [title]="d.fileName + (d.fileId === store.targetFile()?.fileId ? ' — new elements and overrides are written here' : '')" (click)="store.xmlFileId.set(d.fileId); store.mainMode.set('xml')">
-          {{ store.layerOf(d.fileId) }}
-        </button>
-        @if (!last) {
-          <app-icon name="chevronRight" [size]="12" />
-        }
-      }
-    </nav>
-    <span class="spacer"></span>
-    <button class="btn ghost icon" [disabled]="!store.canUndo()" [title]="'Undo ' + store.undoLabel() + ' (Ctrl+Z)'" (click)="store.undo()"><app-icon name="undo" /></button>
-    <button class="btn ghost icon" [disabled]="!store.canRedo()" [title]="'Redo ' + store.redoLabel() + ' (Ctrl+Shift+Z)'" (click)="store.redo()"><app-icon name="redo" /></button>
-    <div class="sep"></div>
-    <button class="btn ghost counts" title="Problems" (click)="openProblems()">
-      <span class="c error"><app-icon name="error" [size]="14" /> {{ store.counts().error }}</span>
-      <span class="c warning"><app-icon name="warning" [size]="14" /> {{ store.counts().warning }}</span>
-    </button>
-    <div class="seg" role="tablist" aria-label="Editor mode">
-      <button role="tab" [attr.aria-selected]="store.mainMode() === 'visual'" [class.on]="store.mainMode() === 'visual'" (click)="store.mainMode.set('visual')"><app-icon name="eye" [size]="14" /> Visual</button>
-      <button role="tab" [attr.aria-selected]="store.mainMode() === 'xml'" [class.on]="store.mainMode() === 'xml'" (click)="store.mainMode.set('xml')"><app-icon name="xml" [size]="14" /> XML</button>
-    </div>
-    <button class="btn" (click)="exportAll()"><app-icon name="download" [size]="14" /> Export</button>
-    <button class="btn ghost icon" title="Toggle dark mode" (click)="toggleTheme()"><app-icon name="moon" /></button>
-    <button class="btn ghost icon" title="Close workspace" (click)="store.closeWorkspace()"><app-icon name="close" /></button>
-  </header>
+  <app-top-bar />
 
   <div class="body">
-    <nav class="activity" aria-label="Views">
-      @for (a of activities; track a.view) {
-        <button [class.on]="store.view() === a.view" [title]="a.label" [attr.aria-label]="a.label" (click)="setView(a.view)">
-          <app-icon [name]="a.icon" [size]="19" />
-          @if (countFor(a.view); as n) {
-            <span class="badge">{{ n }}</span>
+    <nav class="rail" aria-label="Sections">
+      @for (d of destinations; track d.id) {
+        <button type="button" [attr.aria-label]="d.label" [title]="d.label" [class.on]="destination() === d.id" [attr.aria-current]="destination() === d.id ? 'page' : null" (click)="go(d.id)">
+          <app-icon [name]="d.icon" [size]="20" />
+          <span class="lbl">{{ d.label }}</span>
+          @if (countFor(d.id); as n) {
+            <span class="badge" [attr.aria-label]="n + ' errors'">{{ n }}</span>
           }
         </button>
       }
     </nav>
-    <aside class="explorer"><app-explorer /></aside>
+    <aside class="explorer" [class.open]="listOpen()" aria-label="List">
+      <app-explorer (picked)="listOpen.set(false)" />
+    </aside>
+    @if (listOpen()) {
+      <div class="veil" role="presentation" (click)="listOpen.set(false)"></div>
+    }
 
     <main class="main">
       <div class="center">
@@ -121,69 +93,56 @@
           }
         </div>
         @if (showInspector()) {
-          <aside class="inspector">
+          <aside class="inspector" aria-label="Details">
+            <button class="btn ghost sm icon close" type="button" title="Close details" aria-label="Close details" (click)="closeDetails()"><app-icon name="close" [size]="14" /></button>
             @if (sel(); as s) {
               @if (s.kind === 'step') {
                 <app-step-inspector [stepKey]="s.stepKey" [journeyId]="s.journeyId" />
               } @else {
                 <app-journey-inspector [journeyId]="inspectorJourney()!" />
               }
-            } @else {
-              <app-journey-inspector [journeyId]="inspectorJourney()!" />
             }
           </aside>
         }
       </div>
 
-      <section class="dock" [class.closed]="!store.bottomOpen()">
-        <div class="dock-tabs" role="tablist">
-          <button role="tab" [attr.aria-selected]="store.bottomTab() === 'claims'" [class.on]="store.bottomTab() === 'claims'" (click)="store.bottomTab.set('claims'); store.bottomOpen.set(true)"><app-icon name="bag" [size]="14" /> Claims bag</button>
-          <button role="tab" [attr.aria-selected]="store.bottomTab() === 'timeline'" [class.on]="store.bottomTab() === 'timeline'" (click)="store.bottomTab.set('timeline'); store.bottomOpen.set(true)"><app-icon name="table" [size]="14" /> Claims timeline</button>
-          <button role="tab" [attr.aria-selected]="store.bottomTab() === 'problems'" [class.on]="store.bottomTab() === 'problems'" (click)="store.bottomTab.set('problems'); store.bottomOpen.set(true)">
-            <app-icon name="warning" [size]="14" /> Problems
-            @if (store.counts().error) {
-              <span class="chip error">{{ store.counts().error }}</span>
-            }
-            @if (store.counts().warning) {
-              <span class="chip warning">{{ store.counts().warning }}</span>
-            }
-          </button>
-          <span class="spacer"></span>
-          <button class="btn ghost sm icon" [title]="store.bottomOpen() ? 'Collapse' : 'Expand'" (click)="store.bottomOpen.set(!store.bottomOpen())"><app-icon [name]="store.bottomOpen() ? 'chevronDown' : 'chevronUp'" [size]="14" /></button>
-        </div>
-        @if (store.bottomOpen()) {
-          <div class="dock-body">
-            @switch (store.bottomTab()) {
-              @case ('problems') {
-                <app-problems-panel />
-              }
-              @case ('claims') {
-                <app-claims-bag />
-              }
-              @case ('timeline') {
-                <app-claims-timeline />
-              }
-            }
+      @if (store.problemsOpen()) {
+        <section class="drawer" aria-label="Problems">
+          <div class="drawer-head">
+            <h2>Problems</h2>
+            <span class="spacer"></span>
+            <button class="btn ghost sm icon" type="button" title="Close problems" aria-label="Close problems" (click)="store.problemsOpen.set(false)"><app-icon name="close" [size]="14" /></button>
           </div>
-        }
-      </section>
+          <div class="drawer-body"><app-problems-panel /></div>
+        </section>
+      }
     </main>
   </div>
+  <app-status-bar />
+  <app-command-palette />
 }
+
+<router-outlet />
+<app-tour />
 
 <div class="toasts" aria-live="polite">
   @for (t of store.toasts(); track t.id) {
     <div class="toast card {{ t.kind }}">
       <div class="row">
-        <app-icon [name]="t.kind === 'error' ? 'error' : t.impact?.newDiagnostics?.length ? 'warning' : 'check'" [size]="15" />
+        <app-icon [name]="t.kind === 'error' ? 'error' : t.impact?.newDiagnostics?.length ? 'warning' : 'info'" [size]="15" />
         <strong class="grow truncate">{{ t.title }}</strong>
         <button class="btn ghost sm icon" title="Dismiss" (click)="store.dismissToast(t.id)"><app-icon name="close" [size]="13" /></button>
       </div>
-      <ul>
-        @for (l of t.lines; track $index) {
-          <li>{{ l }}</li>
-        }
-      </ul>
+      @if (t.lines.length) {
+        <ul>
+          @for (l of t.lines; track $index) {
+            <li>{{ l }}</li>
+          }
+        </ul>
+      }
+      @if (t.action; as a) {
+        <button class="btn sm" type="button" (click)="a.run(); store.dismissToast(t.id)">{{ a.label }}</button>
+      }
       @if (t.impact?.newDiagnostics?.length) {
         <button class="btn sm" (click)="openProblems(); store.dismissToast(t.id)">Show problems</button>
       }

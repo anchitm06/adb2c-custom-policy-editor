@@ -1,0 +1,50 @@
+name: Check documentation links
+
+# Alerts and the Help page link to Microsoft Learn. Pages and headings move, so check weekly
+# and open (or update) an issue when a link or anchor breaks. Not part of the deploy gate.
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'custom-policy-editor/src/app/core/validate/diagnostic-catalog.ts'
+      - 'custom-policy-editor/src/app/features/help/**'
+      - 'custom-policy-editor/scripts/check-doc-links.mjs'
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  links:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: custom-policy-editor
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check links and anchors
+        id: check
+        run: node --experimental-strip-types scripts/check-doc-links.mjs --report "$GITHUB_WORKSPACE/link-report.md"
+        continue-on-error: true
+      - name: Open or update an issue
+        if: steps.check.outcome == 'failure' && github.event_name != 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = 'The weekly documentation link check found broken links.\n\n```\n' + fs.readFileSync('link-report.md', 'utf8') + '\n```\n\nFix the URLs in `custom-policy-editor/src/app/core/validate/diagnostic-catalog.ts` (and the Help links), then re-run this workflow.';
+            const title = 'Broken Microsoft Learn links in alerts or Help';
+            const { data: issues } = await github.rest.issues.listForRepo({ ...context.repo, state: 'open', labels: 'broken-links' });
+            if (issues.length) {
+              await github.rest.issues.update({ ...context.repo, issue_number: issues[0].number, body });
+            } else {
+              await github.rest.issues.create({ ...context.repo, title, body, labels: ['broken-links'] });
+            }
+      - name: Fail when links are broken
+        if: steps.check.outcome == 'failure'
+        run: exit 1

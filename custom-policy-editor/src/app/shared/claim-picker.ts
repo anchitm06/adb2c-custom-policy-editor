@@ -64,11 +64,11 @@ interface Option {
     :host { display: block; min-width: 0; }
     .wrap { position: relative; display: flex; align-items: center; }
     .wrap input { width: 100%; padding-right: 72px; }
-    .wrap .chip { position: absolute; right: 4px; height: 18px; font-size: 10.5px; pointer-events: none; }
+    .wrap .chip { position: absolute; right: 4px; height: 18px; font-size: var(--text-xs); pointer-events: none; }
     .wrap.invalid input { border-color: var(--error); }
     .pop { position: fixed; z-index: 1000; max-height: 300px; overflow: auto; padding: 4px; box-shadow: var(--shadow-lg); }
-    .group { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-3); padding: 6px 8px 2px; font-weight: 600; }
-    .opt { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
+    .group { font-size: var(--text-xs); color: var(--text-3); padding: 6px 8px 2px; font-weight: 600; }
+    .opt { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: var(--radius-part); cursor: pointer; }
     .opt:hover, .opt.active { background: var(--accent-2); }
     .opt.new { color: var(--accent); }
   `,
@@ -95,7 +95,7 @@ export class ClaimPicker {
     return [...eff.claimTypes.values()].map((e) => {
       const a = av?.get(idKey(e.id));
       const group: Option['group'] = !av ? 'all' : a?.availability === 'definitely' ? 'present' : a?.availability === 'maybe' ? 'maybe' : 'absent';
-      return { id: e.value.id, dataType: e.value.dataType, displayName: e.value.displayName, availability: av ? (a ?? { id: e.id, availability: 'absent', presentOn: [], maybeOn: [], absentOn: [], values: [], sources: [] }) : undefined, group };
+      return { id: e.value.id, dataType: e.value.dataType, displayName: e.value.displayName, availability: av ? (a ?? { id: e.id, availability: 'absent', presentCount: 0, maybeCount: 0, absentCount: 0, values: [], sources: [], missingIn: [], uncertainIn: [] }) : undefined, group };
     });
   });
 

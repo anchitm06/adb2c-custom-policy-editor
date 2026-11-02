@@ -13,7 +13,7 @@ import { ElementXml } from '../xml-editor/element-xml';
         <app-icon name="control" [size]="22" />
         <div class="grow">
           <h2 class="mono">{{ c.id }}</h2>
-          <div class="muted small">{{ c.userInterfaceControlType }} · {{ store.layerOf(c.ref.fileId) }} · {{ store.fileName(c.ref.fileId) }}</div>
+          <div class="muted small">{{ c.userInterfaceControlType }}, {{ store.layerOf(c.ref.fileId) }}, {{ store.fileName(c.ref.fileId) }}</div>
         </div>
       </header>
       <div class="ed-body">

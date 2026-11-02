@@ -17,7 +17,7 @@ interface Cell {
   selector: 'app-claims-timeline',
   template: `
     <div class="bar">
-      <span class="legend"><i class="g ok">●</i> present <i class="g maybe">◐</i> maybe <i class="g absent">·</i> absent <i class="mk prod">+</i> set here <i class="mk in">▲</i> input <i class="mk chk">◆</i> precondition</span>
+      <span class="legend"><i class="g ok">●</i> present <i class="g maybe">◐</i> maybe <i class="g absent">○</i> absent <i class="mk prod">+</i> set here <i class="mk in">▲</i> input <i class="mk chk">◆</i> precondition</span>
       <span class="spacer"></span>
       <input type="search" placeholder="Filter claims" [value]="filter()" (input)="filter.set($any($event.target).value)" aria-label="Filter claims" />
       <label class="small row"><input type="checkbox" [checked]="tokenOnly()" (change)="tokenOnly.set(!tokenOnly())" /> Token claims only</label>
@@ -64,12 +64,12 @@ interface Cell {
     :host { display: flex; flex-direction: column; height: 100%; min-height: 0; }
     .bar { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
     .bar input[type='search'] { width: 160px; height: 24px; }
-    .legend { font-size: 11.5px; color: var(--text-2); display: flex; gap: 6px; align-items: center; }
+    .legend { font-size: var(--text-xs); color: var(--text-2); display: flex; gap: 6px; align-items: center; }
     .legend i { font-style: normal; }
     .scroll { overflow: auto; flex: 1; }
-    table { border-collapse: separate; border-spacing: 0; font-size: 12px; }
+    table { border-collapse: separate; border-spacing: 0; font-size: var(--text-xs); }
     th, td { border-bottom: 1px solid var(--border); padding: 0; height: 24px; }
-    th { position: sticky; top: 0; background: var(--surface); z-index: 2; font-weight: 600; font-size: 11px; color: var(--text-3); }
+    th { position: sticky; top: 0; background: var(--surface); z-index: 2; font-weight: 600; font-size: var(--text-xs); color: var(--text-3); }
     th.claim, td.claim { position: sticky; left: 0; background: var(--surface); z-index: 1; text-align: left; padding: 0 10px; min-width: 180px; border-right: 1px solid var(--border); }
     th.claim { z-index: 3; }
     .sh, .cl { border: 0; background: none; font: inherit; color: inherit; cursor: pointer; padding: 0 6px; height: 100%; }
@@ -80,12 +80,12 @@ interface Cell {
     td.c.absent .g { color: var(--border-strong); }
     td.c.skip { background: repeating-linear-gradient(135deg, transparent 0 4px, var(--surface-3) 4px 6px); }
     .sel { background: var(--accent-2) !important; }
-    .g { font-size: 13px; }
-    .mk { font-size: 9px; position: absolute; top: 1px; }
-    .mk.prod { right: 3px; color: var(--ok); font-weight: 800; font-size: 11px; top: -1px; }
+    .g { font-size: var(--text-sm); }
+    .mk { font-size: var(--text-xs); position: absolute; top: 1px; }
+    .mk.prod { right: 3px; color: var(--ok); font-weight: 800; font-size: var(--text-xs); top: -1px; }
     .mk.in { left: 3px; color: var(--info); }
     .mk.in.bad { color: var(--error); }
-    .mk.chk { left: 3px; bottom: 1px; top: auto; color: var(--skip); }
+    .mk.chk { left: 3px; bottom: 1px; top: auto; color: var(--text-2); }
     .legend .mk { position: static; }
     .legend .g.ok { color: var(--ok); }
     .legend .g.maybe { color: var(--maybe); }
@@ -108,8 +108,8 @@ export class ClaimsTimeline {
     return [...a.steps.values()].map((s) => ({
       key: s.stepKey,
       journeyId: s.journeyId,
-      label: s.journeyId === a.journeyId ? String(s.order) : `${s.journeyId.slice(0, 4)}·${s.order}`,
-      title: `${s.journeyId} step ${s.order} — ${s.runs}`,
+      label: s.journeyId === a.journeyId ? String(s.order) : `${s.journeyId.slice(0, 4)}:${s.order}`,
+      title: `${s.journeyId} step ${s.order}: ${s.runs}`,
       summary: s,
     }));
   });
@@ -118,7 +118,6 @@ export class ClaimsTimeline {
     const a = this.store.analysis();
     const eff = this.store.eff();
     if (!a || !eff) return [];
-    const p = this.store.selectedPath();
     const steps = this.steps();
     const token = new Map(a.tokenClaims.map((t) => [idKey(t.claim), t]));
     const ids = new Map<string, string>();
@@ -145,19 +144,10 @@ export class ClaimsTimeline {
       .map(([k, id]) => {
         const u = usage.get(k);
         const cells: Cell[] = steps.map((s) => {
-          let after: Availability = s.summary.after.get(k)?.availability ?? 'absent';
-          let ran = s.summary.runPaths.length > 0;
-          let before: Availability = s.summary.before.get(k)?.availability ?? 'absent';
-          let produced = ran && s.summary.produced.some((x) => idKey(x) === k);
-          if (p !== null) {
-            const v = a.paths[p]?.visits.find((x) => x.stepKey === s.key);
-            const st = v?.after.get(k);
-            after = !v ? 'absent' : st?.status === 'present' ? 'definitely' : st?.status === 'unknown' ? 'maybe' : 'absent';
-            const sb = v?.before.get(k);
-            before = !v ? 'absent' : sb?.status === 'present' ? 'definitely' : sb?.status === 'unknown' ? 'maybe' : 'absent';
-            ran = !!v?.ran;
-            produced = ran && !!st && st.status !== 'absent' && st !== sb;
-          }
+          const after: Availability = s.summary.after.get(k)?.availability ?? 'absent';
+          const ran = s.summary.ranCount > 0;
+          const before: Availability = s.summary.before.get(k)?.availability ?? 'absent';
+          const produced = ran && s.summary.produced.some((x) => idKey(x) === k);
           const isInput = !!u?.inputs.has(s.key);
           return {
             after,
@@ -169,14 +159,14 @@ export class ClaimsTimeline {
           };
         });
         const t = token.get(k);
-        const tokenAv: Availability | undefined = t ? (p !== null ? (t.availability.presentOn.includes(p) ? 'definitely' : t.availability.maybeOn.includes(p) ? 'maybe' : 'absent') : t.availability.availability) : undefined;
+        const tokenAv: Availability | undefined = t ? t.availability.availability : undefined;
         return { key: k, id, cells, token: tokenAv, first: cells.findIndex((c) => c.after !== 'absent') };
       });
     return rows.sort((x, y) => (x.first < 0 ? 999 : x.first) - (y.first < 0 ? 999 : y.first) || x.id.localeCompare(y.id));
   });
 
   protected glyph(a: Availability): string {
-    return a === 'definitely' ? '●' : a === 'maybe' ? '◐' : '·';
+    return a === 'definitely' ? '●' : a === 'maybe' ? '◐' : '○';
   }
 
   protected cellTitle(claim: string, i: number, c: Cell): string {

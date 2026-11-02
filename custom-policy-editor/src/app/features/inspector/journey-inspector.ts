@@ -5,23 +5,24 @@ import { EditorStore } from '../../state/editor.store';
 import { Icon } from '../../shared/icon';
 import { ElementXml } from '../xml-editor/element-xml';
 import { SelectValue } from '../../shared/select-value';
+import { AlertItem } from '../../shared/alert-item';
 
 @Component({
   selector: 'app-journey-inspector',
-  imports: [SelectValue, Icon, ElementXml],
+  imports: [AlertItem, SelectValue, Icon, ElementXml],
   template: `
     @if (journey(); as j) {
       <div class="head">
         <app-icon [name]="j.kind === 'SubJourney' ? 'subjourney' : 'journey'" [size]="20" />
         <div class="grow">
           <div class="title">{{ j.id }}</div>
-          <div class="muted small">{{ j.kind === 'SubJourney' ? 'Sub journey (' + (j.subJourneyType ?? '?') + ')' : 'User journey' }} · <span class="layer">{{ store.layerOf(j.ref.fileId) }}</span> {{ store.fileName(j.ref.fileId) }}</div>
+          <div class="muted small">{{ j.kind === 'SubJourney' ? 'Sub journey (' + (j.subJourneyType ?? '?') + ')' : 'User journey' }}, <span class="layer">{{ store.layerOf(j.ref.fileId) }}</span> {{ store.fileName(j.ref.fileId) }}</div>
         </div>
       </div>
       <div class="body">
         <div class="stat">
           <div><strong>{{ j.steps.length }}</strong><span class="muted small">steps</span></div>
-          <div><strong>{{ a()?.paths?.length ?? 0 }}</strong><span class="muted small">paths</span></div>
+          <div><strong>{{ choices() }}</strong><span class="muted small">choices</span></div>
           <div><strong>{{ problems().length }}</strong><span class="muted small">problems</span></div>
         </div>
         <div class="field">
@@ -33,8 +34,8 @@ import { SelectValue } from '../../shared/select-value';
           <div class="field">
             <label for="j-type">Type</label>
             <select id="j-type" [appValue]="j.subJourneyType ?? ''" (change)="setAttr('Type', $any($event.target).value)">
-              <option value="Call">Call — returns to the calling journey</option>
-              <option value="Transfer">Transfer — ends with its own SendClaims</option>
+              <option value="Call">Call: returns to the calling journey</option>
+              <option value="Transfer">Transfer: ends with its own SendClaims</option>
             </select>
           </div>
         }
@@ -42,20 +43,23 @@ import { SelectValue } from '../../shared/select-value';
           <label for="j-iss">Default token issuer (DefaultCpimIssuerTechnicalProfileReferenceId)</label>
           <input id="j-iss" type="text" [value]="j.defaultCpimIssuerTechnicalProfileReferenceId ?? ''" (change)="setAttr('DefaultCpimIssuerTechnicalProfileReferenceId', $any($event.target).value)" />
         </div>
-        <h4>Paths through this journey</h4>
-        <p class="muted small">Every combination of buttons, sign-up links and claim states that changes which steps run. Pick one to trace it on the canvas.</p>
-        @for (p of a()?.paths ?? []; track p.id) {
-          <div class="list-item" [class.selected]="store.selectedPath() === p.id" role="button" tabindex="0" (click)="store.selectedPath.set(p.id)" (keydown.enter)="store.selectedPath.set(p.id)">
-            <app-icon name="path" [size]="14" />
-            <span class="grow truncate">{{ p.label }}</span>
-            <span class="chip {{ p.outcome === 'token' ? 'ok' : 'warning' }}">{{ p.outcome === 'token' ? 'token' : p.outcome }}</span>
-            <span class="muted small">{{ ran(p) }} steps</span>
-          </div>
+        <h4>Scenarios</h4>
+        <p class="muted small">A scenario fixes the choices that change which steps run: the button the user picks, or whether a claim exists. Pick one to trace it on the canvas.</p>
+        @if (base()?.namedPaths; as paths) {
+          @for (p of paths; track p.id) {
+            <div class="list-item" [class.selected]="store.scenario().name === p.label" role="button" tabindex="0" (click)="store.setScenario(p.assume, p.label)" (keydown.enter)="store.setScenario(p.assume, p.label)">
+              <app-icon name="path" [size]="14" />
+              <span class="grow truncate">{{ p.label }}</span>
+              <span class="chip {{ p.outcome === 'token' ? 'ok' : 'warning' }}">{{ p.outcome === 'token' ? 'token' : p.outcome }}</span>
+            </div>
+          }
+        } @else {
+          <p class="small">This journey has too many combinations to list ({{ choices() }} choices). Use the Scenario button above the canvas to fix the ones you care about.</p>
         }
         @if (problems().length) {
           <h4>Problems</h4>
           @for (d of problems(); track d.key) {
-            <div class="list-item small" role="button" tabindex="0" (click)="store.goTo(d)" (keydown.enter)="store.goTo(d)"><app-icon [name]="d.severity" [size]="13" /> <span class="grow">{{ d.message }}</span></div>
+            <app-alert-item [severity]="d.severity" [message]="d.message" [code]="d.code" [quickFix]="d.fix" />
           }
         }
         <h4>XML</h4>
@@ -74,18 +78,15 @@ export class JourneyInspector {
     const id = idKey(this.journeyId());
     return e?.userJourneys.get(id)?.value ?? e?.subJourneys.get(id)?.value ?? null;
   });
-  protected readonly a = computed(() => {
-    const a = this.store.analysis();
+  protected readonly base = computed(() => {
+    const a = this.store.baseAnalysis();
     return a && idKey(a.journeyId) === idKey(this.journeyId()) ? a : null;
   });
+  protected readonly choices = computed(() => this.base()?.decisions.filter((d) => d.options.length > 1).length ?? 0);
   protected readonly problems = computed(() => {
     const id = idKey(this.journeyId());
     return this.store.diagnostics().filter((d) => d.target && ((d.target.kind === 'journey' && idKey(d.target.id) === id) || (d.target.kind === 'step' && idKey(d.target.journeyId) === id)) && d.severity !== 'info');
   });
-
-  protected ran(p: { visits: { ran: boolean }[] }): number {
-    return p.visits.filter((v) => v.ran).length;
-  }
 
   protected setAttr(name: string, value: string): void {
     const j = this.journey();

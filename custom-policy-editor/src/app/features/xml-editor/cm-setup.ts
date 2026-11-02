@@ -1,8 +1,18 @@
 import { xml } from '@codemirror/lang-xml';
+import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
 import { Diagnostic as CmDiagnostic, linter, lintGutter } from '@codemirror/lint';
 import { Compartment, EditorState, StateEffect, StateField } from '@codemirror/state';
 import { Decoration, DecorationSet, EditorView } from '@codemirror/view';
+import { tags as t } from '@lezer/highlight';
 import { basicSetup } from 'codemirror';
+
+/** Cobalt code colours: one accent for structure, ink for values, muted for punctuation and comments. */
+const cobaltHighlight = HighlightStyle.define([
+  { tag: [t.tagName, t.keyword], color: 'var(--color-accent-2)' },
+  { tag: [t.attributeName], color: 'var(--color-graphite-ink)' },
+  { tag: [t.attributeValue, t.string], color: 'var(--color-graphite-ink)', fontStyle: 'italic' },
+  { tag: [t.angleBracket, t.punctuation, t.separator, t.comment, t.processingInstruction], color: 'var(--color-graphite-muted)' },
+]);
 
 export interface LineDiagnostic {
   line: number;
@@ -51,6 +61,7 @@ export function createEditor(parent: HTMLElement, text: string, onChange: (text:
     state: EditorState.create({
       doc: text,
       extensions: [
+        syntaxHighlighting(cobaltHighlight),
         basicSetup,
         xml(),
         lintGutter(),

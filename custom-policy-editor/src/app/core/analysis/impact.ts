@@ -21,8 +21,6 @@ export interface Impact {
   resolvedDiagnostics: Diagnostic[];
   claimChanges: ClaimChange[];
   stepChanges: StepChange[];
-  pathsBefore: number;
-  pathsAfter: number;
   /** Short human readable summary lines. */
   lines: string[];
   /** Step keys whose run status or claims bag changed (for highlighting). */
@@ -36,7 +34,7 @@ function ranges(nums: number[]): string {
   for (let i = 0; i < s.length; i++) {
     let j = i;
     while (j + 1 < s.length && s[j + 1] === s[j] + 1) j++;
-    out.push(j > i ? `${s[i]}–${s[j]}` : `${s[i]}`);
+    out.push(j > i ? `${s[i]} to ${s[j]}` : `${s[i]}`);
     i = j;
   }
   return out.join(', ');
@@ -97,17 +95,12 @@ export function computeImpact(
   for (const cc of claimChanges.slice(0, 3)) lines.push(`${cc.claim} now ${cc.to} before step${cc.orders.length > 1 ? 's' : ''} ${ranges(cc.orders)}`);
   const more = Math.max(0, stepChanges.length - 3) + Math.max(0, claimChanges.length - 3);
   if (more) lines.push(`+${more} more change${more > 1 ? 's' : ''}`);
-  const pathsBefore = a0?.paths.length ?? 0;
-  const pathsAfter = a1?.paths.length ?? 0;
-  if (a0 && a1 && pathsBefore !== pathsAfter) lines.push(`${pathsAfter} path${pathsAfter === 1 ? '' : 's'} (was ${pathsBefore})`);
 
   return {
     newDiagnostics,
     resolvedDiagnostics,
     claimChanges,
     stepChanges,
-    pathsBefore,
-    pathsAfter,
     lines,
     changedSteps,
     hasChanges: lines.length > 0,

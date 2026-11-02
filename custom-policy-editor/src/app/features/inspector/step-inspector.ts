@@ -6,22 +6,23 @@ import { EditorStore } from '../../state/editor.store';
 import { Icon } from '../../shared/icon';
 import { AVAILABILITY_CLASS, stepTypeInfo, tpKindInfo } from '../../shared/present';
 import { ClaimsBag } from '../claims-bag/claims-bag';
+import { explainPreconditions } from '../../core/analysis/precondition-explainer';
 import { PreconditionEditor } from '../preconditions/precondition-editor';
 import { ElementXml } from '../xml-editor/element-xml';
 import { SelectValue } from '../../shared/select-value';
+import { AlertItem } from '../../shared/alert-item';
 
 @Component({
   selector: 'app-step-inspector',
-  imports: [SelectValue, Icon, PreconditionEditor, ElementXml, ClaimsBag],
+  imports: [AlertItem, SelectValue, Icon, PreconditionEditor, ElementXml, ClaimsBag],
   template: `
     @if (step(); as st) {
       <div class="head">
         <span class="order">{{ st.orderText }}</span>
         <div class="grow">
           <div class="title">{{ info().label }}</div>
-          <div class="muted small">{{ journeyId() }} · <span class="layer">{{ store.layerOf(st.ref.fileId) }}</span> {{ store.fileName(st.ref.fileId) }}</div>
+          <div class="muted small">{{ journeyId() }}, <span class="layer">{{ store.layerOf(st.ref.fileId) }}</span> {{ store.fileName(st.ref.fileId) }}</div>
         </div>
-        <span class="chip {{ runsClass() }}">{{ runsText() }}</span>
       </div>
       <div class="tabs" role="tablist">
         @for (t of tabs; track t.id) {
@@ -35,15 +36,45 @@ import { SelectValue } from '../../shared/select-value';
       </div>
       <div class="body">
         @switch (tab()) {
-          @case ('step') {
-            <p class="muted small">{{ info().description }}</p>
-            @for (d of problems(); track d.key) {
-              <div class="banner {{ d.severity === 'info' ? '' : d.severity }} small"><app-icon [name]="d.severity" [size]="14" /> <span class="grow">{{ d.message }}</span>
-                @if (d.fix) {
-                  <button class="btn sm" (click)="store.applyFix(d.fix)">{{ d.fix.label }}</button>
+          @case ('overview') {
+            <section class="ov" aria-label="What this step does">
+              <h3>When it runs</h3>
+              <p>{{ whenText() }}</p>
+              @if (examples().length) {
+                <ul class="plain">
+                  @for (e of examples(); track e) {
+                    <li>{{ e }}</li>
+                  }
+                </ul>
+              }
+              <h3>What it does</h3>
+              <ul class="plain">
+                @for (d of does(); track d) {
+                  <li>{{ d }}</li>
                 }
-              </div>
+              </ul>
+              <h3>Claims</h3>
+              <p>{{ addsText() }}</p>
+              @if (adds().length) {
+                <div class="claims">
+                  @for (c of adds().slice(0, 12); track c) {
+                    <span class="chip ok"><span class="dot ok"></span> {{ c }}</span>
+                  }
+                  @if (adds().length > 12) {
+                    <span class="chip outline" [title]="adds().slice(12).join(', ')">+{{ adds().length - 12 }} more</span>
+                  }
+                </div>
+              }
+              @for (m of needs(); track m.claim + m.tp) {
+                <p class="need"><span class="dot {{ m.cls }}"></span> Needs <strong class="mono">{{ m.claim }}</strong> for {{ m.tp }}, which {{ m.text }}</p>
+              }
+            </section>
+            @for (d of problems(); track d.key) {
+              <app-alert-item [severity]="d.severity" [message]="d.message" [code]="d.code" [quickFix]="d.fix" />
             }
+            <details class="disclose">
+              <summary>Edit step settings</summary>
+              <div class="disclose-body">
             <div class="field">
               <label for="st-type">Step type</label>
               <select id="st-type" [appValue]="st.type" (change)="setType($any($event.target).value)">
@@ -124,7 +155,7 @@ import { SelectValue } from '../../shared/select-value';
                     <input class="grow" type="text" [value]="x.tpId" list="tp-list" aria-label="Technical profile" (change)="setSelAttr(x.ref, 'TechnicalProfileReferenceId', $any($event.target).value)" />
                     <button class="btn sm" [disabled]="x.missing" (click)="openTp(x.tpId)">Open</button>
                   </div>
-                  <div class="small muted" style="margin: 4px 0">{{ x.kind }}{{ x.include ? ' · includes ' + x.include : '' }}</div>
+                  <div class="small muted" style="margin: 4px 0">{{ x.kind }}{{ x.include ? ', includes ' + x.include : '' }}</div>
                   @if (x.inputs.length) {
                     <div class="claims"><span class="lbl">Inputs</span>
                       @for (c of x.inputs; track c.id) {
@@ -155,6 +186,8 @@ import { SelectValue } from '../../shared/select-value';
                 }
               </datalist>
             }
+              </div>
+            </details>
           }
           @case ('pre') {
             <app-precondition-editor [preconditions]="st.preconditions" [ownerRef]="st.ref" [stepKey]="stepKey()" />
@@ -180,9 +213,9 @@ export class StepInspector {
   readonly journeyId = input.required<string>();
   protected readonly tab = this.store.inspectorTab;
   protected readonly tabs = [
-    { id: 'step' as const, label: 'Step' },
-    { id: 'pre' as const, label: 'Preconditions' },
-    { id: 'claims' as const, label: 'Claims bag' },
+    { id: 'overview' as const, label: 'Overview' },
+    { id: 'pre' as const, label: 'Conditions' },
+    { id: 'claims' as const, label: 'Claims' },
     { id: 'xml' as const, label: 'XML' },
   ];
   protected readonly stepTypes = STEP_TYPES;
@@ -207,8 +240,7 @@ export class StepInspector {
   protected readonly runsText = computed(() => {
     const s = this.summary();
     if (!s) return 'Not reached';
-    const total = s.runPaths.length + s.skipPaths.length;
-    return s.runs === 'always' ? 'Always runs' : s.runs === 'never' ? 'Never runs' : `Runs on ${s.runPaths.length}/${total} paths`;
+    return s.runs === 'always' ? 'Always runs' : s.runs === 'never' ? 'Never runs' : 'Runs in some cases';
   });
   protected readonly runsClass = computed(() => {
     const r = this.summary()?.runs;
@@ -221,7 +253,7 @@ export class StepInspector {
   protected readonly allTps = computed(() =>
     [...(this.store.eff()?.technicalProfiles.values() ?? [])].map((t) => {
       const f = this.store.eff()!.tp(t.id);
-      return { id: t.id, label: `${f?.displayName ?? ''} — ${tpKindInfo(f?.kind).label}` };
+      return { id: t.id, label: `${f?.displayName ?? ''}, ${tpKindInfo(f?.kind).label}` };
     }),
   );
   protected readonly issuers = computed(() => {
@@ -258,6 +290,81 @@ export class StepInspector {
       };
     });
   });
+
+  private readonly explanation = computed(() => {
+    const st = this.step();
+    const eff = this.store.eff();
+    if (!st || !eff || !st.preconditions.length) return null;
+    return explainPreconditions(st.preconditions, { eff, analysis: this.store.analysis() ?? undefined, stepKey: this.stepKey() });
+  });
+
+  /** "When it runs", in one or two plain sentences. */
+  protected readonly whenText = computed(() => {
+    const sum = this.summary();
+    const ex = this.explanation();
+    if (!sum || sum.runs === 'unreached') return 'This step is not reached in the analysed journey.';
+    if (sum.runs === 'never') return `Never runs. ${ex?.summary ? ex.summary + ', and that holds in every analysed scenario.' : 'Its conditions skip it in every analysed scenario.'}`;
+    if (!ex) return 'Runs for every user who reaches it. It has no preconditions.';
+    if (sum.runs === 'always') return `Always runs. ${ex.summary}, but that never holds in the analysed scenarios.`;
+    return `${ex.summary}. It runs in ${sum.ranCount} of ${sum.arrivals} analysed scenarios.`;
+  });
+  protected readonly examples = computed(() => {
+    const sum = this.summary();
+    if (!sum || sum.runs !== 'sometimes') return [];
+    const out: string[] = [];
+    if (sum.ranWhen[0]) out.push(`Runs, for example, on: ${sum.ranWhen.slice(0, 2).join('; ')}`);
+    if (sum.skippedWhen[0]) out.push(`Skipped, for example, on: ${sum.skippedWhen.slice(0, 2).join('; ')}`);
+    return out;
+  });
+
+  /** "What it does": one sentence per action the step takes. */
+  protected readonly does = computed(() => {
+    const st = this.step();
+    const eff = this.store.eff();
+    if (!st || !eff) return [];
+    const out: string[] = [];
+    const tpName = (id: string) => {
+      const f = eff.tp(id);
+      return f ? `${f.displayName || id}, ${tpKindInfo(f.kind).label.toLowerCase()}` : `${id} (not found)`;
+    };
+    switch (st.type) {
+      case 'SendClaims':
+        out.push('Issues the token to the application with the relying party output claims.');
+        break;
+      case 'InvokeSubJourney':
+        out.push(`Runs the sub journey ${st.journeyCandidates[0]?.subJourneyReferenceId || '(not chosen)'}, then continues here.`);
+        break;
+      case 'GetClaims':
+        out.push('Reads claims from the request that started the journey.');
+        break;
+      case 'CombinedSignInAndSignUp':
+      case 'ClaimsProviderSelection': {
+        const n = st.claimsProviderSelections.length;
+        out.push(`Shows a page where the user ${n ? `picks one of ${n} ${n === 1 ? 'option' : 'options'}` : 'signs in'}.`);
+        for (const x of st.claimsExchanges) out.push(`On the page, calls ${tpName(x.technicalProfileReferenceId)}.`);
+        break;
+      }
+      default:
+        if (st.claimsExchanges.length > 1) out.push('Runs one of these, depending on the option the user picked in the previous step:');
+        for (const x of st.claimsExchanges) out.push(`Calls ${tpName(x.technicalProfileReferenceId)}.`);
+        if (!st.claimsExchanges.length) out.push(this.info().description);
+    }
+    return out;
+  });
+
+  protected readonly adds = computed(() => this.summary()?.produced ?? []);
+  protected readonly addsText = computed(() => {
+    const n = this.adds().length;
+    return n ? `Adds ${n} ${n === 1 ? 'claim' : 'claims'} to the claims bag.` : 'Adds no new claims.';
+  });
+  protected readonly needs = computed(() =>
+    (this.summary()?.missingInputs ?? []).slice(0, 6).map((m) => ({
+      claim: m.claim,
+      tp: m.technicalProfileId,
+      cls: m.availability === 'absent' ? 'absent' : 'maybe',
+      text: m.availability === 'absent' ? 'is not in the claims bag at this point.' : `may be missing${m.witnesses[0] ? `, for example on: ${m.witnesses[0]}` : ''}.`,
+    })),
+  );
 
   protected typeLabel(t: string): string {
     return stepTypeInfo(t).label;

@@ -30,6 +30,8 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
+      - name: Write build info
+        run: node scripts/write-build-info.mjs
       - name: Build
         run: npx ng build --base-href "/${{ github.event.repository.name }}/"
       - name: SPA fallback

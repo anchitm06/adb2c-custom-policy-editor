@@ -5,22 +5,23 @@ import { idKey } from '../../core/model/types';
 import { EditorStore } from '../../state/editor.store';
 import { Icon } from '../../shared/icon';
 import { ElementXml } from '../xml-editor/element-xml';
+import { AlertItem } from '../../shared/alert-item';
 
 @Component({
   selector: 'app-content-definition-editor',
-  imports: [Icon, ElementXml],
+  imports: [AlertItem, Icon, ElementXml],
   template: `
     @if (cd(); as c) {
       <header class="ed-head">
         <app-icon name="page" [size]="22" />
         <div class="grow">
           <h2 class="mono">{{ c.id }}</h2>
-          <div class="muted small">{{ contract()?.label ?? 'Content definition' }} · {{ store.layerOf(c.ref.fileId) }} · {{ store.fileName(c.ref.fileId) }}</div>
+          <div class="muted small">{{ contract()?.label ?? 'Content definition' }}, {{ store.layerOf(c.ref.fileId) }}, {{ store.fileName(c.ref.fileId) }}</div>
         </div>
       </header>
       <div class="ed-body">
         @for (d of problems(); track d.key) {
-          <div class="banner {{ d.severity === 'info' ? '' : d.severity }} small"><app-icon [name]="d.severity" [size]="14" /> {{ d.message }}</div>
+          <app-alert-item [severity]="d.severity" [message]="d.message" [code]="d.code" [quickFix]="d.fix" />
         }
         <section class="card sec">
           <h3>Page</h3>

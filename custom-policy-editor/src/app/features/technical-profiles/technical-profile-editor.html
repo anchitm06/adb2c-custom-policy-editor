@@ -4,7 +4,7 @@
     <div class="grow">
       <h2>{{ t.displayName || t.id }}</h2>
       <div class="muted small">
-        <span class="mono">{{ t.id }}</span> · {{ kind().label }} · <a [href]="docs()" target="_blank" rel="noopener">docs</a>
+        <span class="mono">{{ t.id }}</span>, {{ kind().label }}, <a [href]="docs()" target="_blank" rel="noopener">docs</a>
       </div>
     </div>
     <div class="layers">
@@ -35,7 +35,7 @@
     </div>
 
     @for (d of problems(); track d.key) {
-      <div class="banner {{ d.severity }} small"><app-icon [name]="d.severity" [size]="14" /> {{ d.message }}</div>
+      <app-alert-item [severity]="d.severity" [message]="d.message" [code]="d.code" [quickFix]="d.fix" />
     }
 
     <section class="card sec">
@@ -50,13 +50,13 @@
           <label for="tp-kind">Type (protocol)</label>
           <select id="tp-kind" [appValue]="t.kind" (change)="setKind($any($event.target).value)">
             @if (t.kind === 'unknown') {
-              <option value="unknown">(not set — {{ t.protocol?.name ?? 'inherited' }})</option>
+              <option value="unknown">(not set, {{ t.protocol?.name ?? 'inherited' }})</option>
             }
             @for (k of kinds; track k.kind) {
               <option [value]="k.kind">{{ k.label }}</option>
             }
           </select>
-          <span class="hint mono">{{ t.protocol?.name }}{{ t.protocol?.handler ? ' · ' + t.protocol!.handler!.split(',')[0] : '' }}</span>
+          <span class="hint mono">{{ t.protocol?.name }}{{ t.protocol?.handler ? ', ' + t.protocol!.handler!.split(',')[0] : '' }}</span>
         </div>
         <div class="field">
           <label for="tp-inc">Include technical profile</label>
@@ -175,7 +175,7 @@
                   @if (r.own) {
                     <button class="btn ghost sm icon" title="Remove" (click)="removeOwn(r.item.ref, 'Remove claim')"><app-icon name="close" [size]="13" /></button>
                   } @else {
-                    <span class="muted" title="Inherited claims can't be removed from a derived file">—</span>
+                    <span class="muted" title="Inherited claims can't be removed from a derived file">n/a</span>
                   }
                 </td>
               </tr>

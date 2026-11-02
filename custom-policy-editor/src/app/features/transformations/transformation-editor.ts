@@ -7,22 +7,23 @@ import { ClaimPicker } from '../../shared/claim-picker';
 import { Icon } from '../../shared/icon';
 import { ElementXml } from '../xml-editor/element-xml';
 import { SelectValue } from '../../shared/select-value';
+import { AlertItem } from '../../shared/alert-item';
 
 @Component({
   selector: 'app-transformation-editor',
-  imports: [SelectValue, Icon, ClaimPicker, ElementXml],
+  imports: [AlertItem, SelectValue, Icon, ClaimPicker, ElementXml],
   template: `
     @if (ct(); as c) {
       <header class="ed-head">
         <app-icon name="transform" [size]="22" />
         <div class="grow">
           <h2 class="mono">{{ c.id }}</h2>
-          <div class="muted small">{{ c.method }} · {{ store.layerOf(c.ref.fileId) }} · {{ store.fileName(c.ref.fileId) }}</div>
+          <div class="muted small">{{ c.method }}, {{ store.layerOf(c.ref.fileId) }}, {{ store.fileName(c.ref.fileId) }}</div>
         </div>
       </header>
       <div class="ed-body">
         @for (d of problems(); track d.key) {
-          <div class="banner {{ d.severity === 'info' ? '' : d.severity }} small"><app-icon [name]="d.severity" [size]="14" /> {{ d.message }}</div>
+          <app-alert-item [severity]="d.severity" [message]="d.message" [code]="d.code" [quickFix]="d.fix" />
         }
         <section class="card sec">
           <div class="grid2">
@@ -59,7 +60,7 @@ import { SelectValue } from '../../shared/select-value';
           @for (slot of inputSlots(); track slot.tct) {
             <div class="slot">
               <span class="tct mono">{{ slot.tct }}</span>
-              <span class="muted small">{{ slot.dataType }}{{ slot.optional ? ' · optional' : '' }}</span>
+              <span class="muted small">{{ slot.dataType }}{{ slot.optional ? ', optional' : '' }}</span>
               <app-claim-picker class="grow" [value]="slot.claim ?? ''" placeholder="(not set)" (changed)="setClaim('InputClaims', slot.tct, $event)" />
               @if (slot.claim && slot.ref) {
                 <button class="btn ghost sm icon" title="Remove" (click)="remove(slot.ref)"><app-icon name="close" [size]="13" /></button>
@@ -75,7 +76,7 @@ import { SelectValue } from '../../shared/select-value';
           @for (p of paramSlots(); track p.id) {
             <div class="slot">
               <span class="tct mono">{{ p.id }}</span>
-              <span class="muted small">{{ p.dataType }}{{ p.optional ? ' · optional' : '' }}</span>
+              <span class="muted small">{{ p.dataType }}{{ p.optional ? ', optional' : '' }}</span>
               @if (p.values?.length) {
                 <select class="grow" [appValue]="p.value ?? ''" [attr.aria-label]="p.id" (change)="setParam(p.id, p.dataType, $any($event.target).value)">
                   <option value="">(not set)</option>
